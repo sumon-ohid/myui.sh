@@ -1,0 +1,192 @@
+# Project Blueprint: Custom AI UI Design CLI (myui)
+
+## 1. Vision & Core Objectives
+To build a terminal-driven AI design engineer that generates high-quality, production-ready UI components. Unlike standard AI coding assistants that generate unpredictable and visually inconsistent code, this tool will enforce a strict design system, generate multiple variants, spin up a local preview environment, and seamlessly integrate the chosen code into the user's project.
+
+---
+
+## 2. Extended Feature Specification
+
+### A. The CLI Experience
+* **Init Command:** `my-ui init` scaffolds the configuration file (`my-ui.config.json`), injects base design tokens, and sets up the strict styling rules in the host project.
+* **Generate Command:** `my-ui generate <prompt>` triggers the creation of new UI components.
+* **Tweak/Refine Command:** If a generated variant is close but not perfect, users can run `my-ui refine <variant_id> "make the buttons larger and add a dark mode toggle"`.
+
+### B. Opinionated Design Engine
+* **Design Constraints:** Binds the AI to a predefined set of Tailwind CSS tokens (e.g., only using `slate`, `blue`, and specific spacing variables).
+* **Component Base:** Forces the AI to use an internal library of primitive components (like shadcn/ui or Catalyst) rather than raw HTML tags (e.g., `<Button>` instead of `<button className="...">`).
+* **Accessibility Enforcement:** System prompts strictly mandate `aria-labels`, semantic HTML (`<main>`, `<nav>`, `<aside>`), and keyboard navigation support.
+
+### C. Multi-Variant Generation & Preview Sandbox
+* **Guaranteed Variants:** The AI is forced via structured output to always return 3 distinct variations (e.g., Minimal, Bold, Creative).
+* **Dynamic Preview Shell:** The CLI automatically scaffolds a temporary React/Vue sandbox featuring a built-in top navigation bar to toggle between variants.
+* **Isolated Dev Server:** The CLI invisibly spawns a rapid local server (e.g., Vite) on a specific port (like `localhost:9999`) to render the preview without polluting the user's main app routing.
+
+### D. Smart Integration & Cleanup
+* **Auto-Dependency Resolution:** If the AI includes an icon from `lucide-react` or a chart from `recharts`, the CLI detects this and prompts the user to auto-install the missing npm packages.
+* **AST Code Injection:** Once a variant is accepted, the CLI safely injects the component into the project tree using Abstract Syntax Trees (AST) to ensure it doesn't break existing imports.
+* **Garbage Collection:** Automatically deletes the temporary preview shell, sandbox folder, and unselected variants once a decision is made.
+
+---
+
+## 3. Technical Breakdown & Architecture
+
+### Tech Stack
+* **CLI Framework:** Node.js with [Commander.js](https://github.com/tj/commander.js) or [Oclif](https://oclif.io/). (Alternative: Go/Rust for faster binary execution, but Node is easier for manipulating JS/TS code).
+* **AI Provider:** Anthropic Claude 3.5 Sonnet (currently the best at UI/frontend generation) or OpenAI GPT-4o.
+* **Preview Server Orchestration:** [Vite](https://vitejs.dev/) (spawned via Node's `child_process`).
+* **Code Manipulation:** `ts-morph` or `jscodeshift` to safely parse, format, and insert generated code into the host project.
+* **Formatting:** Prettier API to ensure generated code matches the user's project style.
+
+### System Architecture Flow
+1.  **Input:** User runs `my-ui gen "pricing section"`.
+2.  **Context Assembly (RAG):** CLI reads `tailwind.config.js`, gathers user constraints, and fetches base component definitions.
+3.  **LLM Call:** CLI sends the prompt + context to the LLM API, requiring a JSON response containing an array of 3 variant code strings.
+4.  **Sandbox Creation:** CLI writes `Variant1.tsx`, `Variant2.tsx`, `Variant3.tsx`, and `PreviewShell.tsx` to a hidden `.my-ui/` folder.
+5.  **Preview Spawns:** CLI runs `npx vite .my-ui --port 9999` in the background.
+6.  **Approval Loop:** Terminal prompts: *"Which variant to keep? (1/2/3/Refine/Cancel)"*.
+7.  **Integration:** User selects `2`. CLI moves `Variant2.tsx` to `src/components/PricingSection.tsx`, installs missing deps, and deletes the `.my-ui/` folder.
+
+---
+
+## 4. Implementation Guide (Step-by-Step)
+
+### Step 1: Initialize the CLI Foundation
+Create a Node project and set up Commander to handle terminal inputs.
+```javascript
+import { Command } from 'commander';
+const program = new Command();
+
+program
+  .command('generate <prompt>')
+  .description('Generate UI components with 3 variants')
+  .action(async (prompt) => {
+    await runGenerationFlow(prompt);
+  });
+
+program.parse(process.argv);
+```
+
+### Step 2: Craft the System Prompt (The "Brain")
+Define exactly how the AI should behave. Use OpenAI/Anthropic tool calling to force a structured JSON return.
+```json
+// Define the required LLM Output Schema
+{
+  "type": "object",
+  "properties": {
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number" },
+          "description": { "type": "string" },
+          "code": { "type": "string", "description": "The full React component code" }
+        }
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
+```
+
+### Step 3: Build the Sandbox Generator
+When the AI returns the code, use Node's `fs` module to create the temporary environment.
+```javascript
+import fs from 'fs/promises';
+import { exec } from 'child_process';
+
+async function buildSandbox(variants) {
+  await fs.mkdir('./.my-ui/preview', { recursive: true });
+  
+  // Write the variants
+  for (const v of variants) {
+    await fs.writeFile(`./.my-ui/preview/Variant${v.id}.tsx`, v.code);
+  }
+
+  // Write the Shell (The Navbar UI you requested)
+  const shellCode = generatePreviewShellCode(); // Returns the React Nav + State code
+  await fs.writeFile(`./.my-ui/preview/App.tsx`, shellCode);
+
+  // Spawn Vite dev server
+  const server = exec('npx vite serve ./.my-ui/preview --port 9999');
+  console.log('Preview running at http://localhost:9999');
+  
+  return server;
+}
+```
+
+### Step 4: The Terminal Interaction Loop
+Use a library like [Inquirer.js](https://github.com/SBoudrias/Inquirer.js) or [Prompts](https://github.com/terkelg/prompts) to pause the CLI and wait for the user's decision while they look at the browser.
+```javascript
+import prompts from 'prompts';
+
+const response = await prompts({
+  type: 'select',
+  name: 'action',
+  message: 'Which variant would you like to keep?',
+  choices: [
+    { title: 'Variant 1 (Minimal)', value: '1' },
+    { title: 'Variant 2 (Bold)', value: '2' },
+    { title: 'Variant 3 (Creative)', value: '3' },
+    { title: 'None (Cancel)', value: 'cancel' }
+  ]
+});
+```
+
+### Step 5: Integration and Cleanup
+Move the file, format it, and clean the directory.
+```javascript
+if (response.action !== 'cancel') {
+  // Move file
+  await fs.rename(
+    `./.my-ui/preview/Variant${response.action}.tsx`, 
+    `./src/components/GeneratedUI.tsx`
+  );
+}
+// Cleanup
+await fs.rm('./.my-ui', { recursive: true, force: true });
+server.kill(); // Stop Vite
+```
+
+---
+
+## 5. Project Plan & Roadmap
+
+### Phase 1: Core Engine & AI Connectivity (Weeks 1-2)
+* **Goal:** Get the CLI to accept a prompt, ping the LLM, and return code safely.
+* **Tasks:**
+    * Set up Node CLI boilerplate.
+    * Create LLM API wrapper (handle retries, rate limits, and JSON parsing).
+    * Draft the V1 System Prompts to enforce Tailwind best practices.
+* **Deliverable:** `my-ui gen "button"` outputs a single raw React file to the current directory.
+
+### Phase 2: The Multi-Variant Sandbox (Weeks 3-4)
+* **Goal:** Implement the "Pitching" workflow (Navbar + 3 variants).
+* **Tasks:**
+    * Update LLM prompt/schema to require exactly 3 distinct arrays.
+    * Write the script that generates `Preview.tsx` with the tabbed navigation state.
+    * Implement the `child_process` logic to invisibly run Vite in the `.my-ui` folder.
+    * Add terminal interactive prompts (Inquirer.js) to handle the selection.
+* **Deliverable:** Users can run the command, view 3 variants on `localhost:9999`, and select one in the terminal.
+
+### Phase 3: Context Injection & Design System Rules (Weeks 5-6)
+* **Goal:** Ensure the AI doesn't hallucinate colors or components.
+* **Tasks:**
+    * Build a local RAG parser: CLI reads `tailwind.config.js` and extracts custom colors/fonts.
+    * Create an internal library of "base components" (Input, Button, Card) that the CLI sends to the LLM as reference material.
+    * Implement Dependency Checking: Parse the AST of the generated file to find imports like `framer-motion` and automatically run `npm install`.
+* **Deliverable:** The generated UI perfectly matches the user's existing brand colors and uses their existing button components.
+
+### Phase 4: Polish & Open Source / Release (Weeks 7-8)
+* **Goal:** Make it stable for daily use.
+* **Tasks:**
+    * Implement error handling (what happens if the AI outputs broken syntax? -> Auto-feed the error back to the AI for a retry).
+    * Add the `refine` command (allow the user to chat with the selected variant before saving it).
+    * Write comprehensive documentation.
+* **Deliverable:** A highly polished `v1.0.0` ready to be used or distributed.
