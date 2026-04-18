@@ -43,7 +43,7 @@ myui/
 **Stack:**
 - Runtime: Node 20+, TypeScript, ESM
 - Package manager: pnpm workspaces
-- AI: `@anthropic-ai/claude-agent-sdk` — Sonnet 4.6 default, Opus 4.7 opt-in
+- AI: `@anthropic-ai/claude-agent-sdk` — Sonnet 4.6 default, Opus 4.7 opt-in. **Auth:** inherits Claude Code local credentials automatically (subscription users); falls back to `ANTHROPIC_API_KEY` if set. No key required when Claude Code is installed.
 - CLI: Commander + `@clack/prompts`
 - Schema: Zod (single source of truth, derive JSON schema for SDK tool)
 - AST: `ts-morph`
