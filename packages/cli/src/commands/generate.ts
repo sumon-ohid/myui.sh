@@ -1,11 +1,14 @@
 import {
   detectProjectContext,
+  formatReport,
   generate,
   inferComponentName,
+  loadConfig,
   writeVariant,
   type GenerationResult,
   type ModelId,
   type Variant,
+  type VariantReport,
 } from "@myui/core";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
@@ -15,6 +18,13 @@ interface GenerateCliOptions {
   readonly variants?: string;
   readonly model?: string;
   readonly out?: string;
+}
+
+function renderReports(reports: readonly VariantReport[]): void {
+  for (const r of reports) {
+    if (r.report.issues.length === 0) continue;
+    p.note(formatReport(r.report), pc.red(`Variant ${r.variantId}`));
+  }
 }
 
 function parseVariantCount(raw: string | undefined): 1 | 2 | 3 {
@@ -73,6 +83,7 @@ export function registerGenerate(program: Command): void {
       p.intro(pc.bgCyan(pc.black(" myui ")));
 
       const ctx = await detectProjectContext(cwd);
+      const config = await loadConfig(ctx);
       const componentsDir = opts.out
         ? opts.out.startsWith("/")
           ? opts.out
@@ -90,21 +101,40 @@ export function registerGenerate(program: Command): void {
         variantCount,
         model,
         cwd,
+        config,
       });
 
       if (!outcome.ok) {
         spinner.stop(pc.red(`✗ ${outcome.error.message}`));
+        if (outcome.reports) renderReports(outcome.reports);
         process.exitCode = 1;
         return;
       }
 
+      const repairNote =
+        outcome.repairsUsed > 0
+          ? ` after ${outcome.repairsUsed} repair${outcome.repairsUsed === 1 ? "" : "s"}`
+          : "";
       spinner.stop(
         pc.green(
-          `✓ Generated ${outcome.result.variants.length} variant(s) ` +
+          `✓ Generated ${outcome.result.variants.length} variant(s)${repairNote} ` +
             `(${outcome.inputTokens + outcome.outputTokens} tokens, ` +
             `$${outcome.costUsd.toFixed(4)})`,
         ),
       );
+
+      const warnings = outcome.reports.flatMap((r) =>
+        r.report.issues.filter((i) => i.severity === "warning"),
+      );
+      if (warnings.length > 0) {
+        p.note(
+          warnings
+            .slice(0, 8)
+            .map((w) => `• ${w.rule}: ${w.message}`)
+            .join("\n"),
+          pc.yellow("Warnings"),
+        );
+      }
 
       const picked = await pickVariant(outcome.result);
       if (!picked) {

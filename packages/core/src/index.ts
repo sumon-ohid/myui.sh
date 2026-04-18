@@ -1,3 +1,10 @@
+export {
+  DEFAULT_ALLOWED,
+  DEFAULT_FORBIDDEN,
+  defaultConfig,
+  loadConfig,
+} from "./config.js";
+export type { MyUiConfig } from "./config.js";
 export { detectProjectContext } from "./context.js";
 export type {
   Framework,
@@ -19,7 +26,10 @@ export type {
   GenerateOutcome,
   GenerateSuccess,
   ModelId,
+  VariantReport,
 } from "./generate.js";
+export { formatReport, validateVariant } from "./validate.js";
+export type { Severity, ValidationIssue, ValidationReport } from "./validate.js";
 export { inferComponentName } from "./name.js";
 export { classifyScope } from "./scope.js";
 export type { ComponentScope, ScopeHint } from "./scope.js";
