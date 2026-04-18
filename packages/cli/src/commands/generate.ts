@@ -19,6 +19,7 @@ interface GenerateCliOptions {
   readonly variants?: string;
   readonly model?: string;
   readonly out?: string;
+  readonly mock?: boolean;
 }
 
 function renderReports(reports: readonly VariantReport[]): void {
@@ -40,6 +41,107 @@ function parseModel(raw: string | undefined): ModelId {
   if (raw === "opus") return "claude-opus-4-7";
   if (raw === "claude-sonnet-4-6" || raw === "claude-opus-4-7") return raw;
   throw new Error(`--model must be sonnet or opus (got "${raw}")`);
+}
+
+function buildMockVariantCode(id: 1 | 2 | 3, prompt: string): string {
+  if (id === 1) {
+    return `export default function Variant1() {
+  return (
+    <section style={{ border: "1px solid #e5e7eb", borderRadius: 16, padding: 24, background: "#ffffff" }}>
+      <h2 style={{ marginTop: 0 }}>Variant 1</h2>
+      <p style={{ color: "#4b5563", lineHeight: 1.6 }}>
+        Mock preview for: ${prompt.replace(/"/g, "\\\"")}
+      </p>
+      <button
+        type="button"
+        style={{
+          cursor: "pointer",
+          border: "1px solid #111827",
+          background: "#111827",
+          color: "#ffffff",
+          borderRadius: 10,
+          padding: "10px 14px",
+          fontWeight: 600,
+        }}
+      >
+        Primary Action
+      </button>
+    </section>
+  );
+}
+`;
+  }
+
+  if (id === 2) {
+    return `export default function Variant2() {
+  return (
+    <section style={{ borderRadius: 18, padding: 26, background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", color: "#f8fafc" }}>
+      <h2 style={{ marginTop: 0 }}>Variant 2</h2>
+      <p style={{ color: "#cbd5e1", lineHeight: 1.6 }}>
+        Mock preview for: ${prompt.replace(/"/g, "\\\"")}
+      </p>
+      <button
+        type="button"
+        style={{
+          cursor: "pointer",
+          border: "1px solid #38bdf8",
+          background: "#38bdf8",
+          color: "#082f49",
+          borderRadius: 10,
+          padding: "10px 14px",
+          fontWeight: 700,
+        }}
+      >
+        Explore
+      </button>
+    </section>
+  );
+}
+`;
+  }
+
+  return `export default function Variant3() {
+  return (
+    <section style={{ borderRadius: 16, padding: 24, background: "#f8fafc", border: "1px dashed #94a3b8" }}>
+      <h2 style={{ marginTop: 0 }}>Variant 3</h2>
+      <p style={{ color: "#334155", lineHeight: 1.6 }}>
+        Mock preview for: ${prompt.replace(/"/g, "\\\"")}
+      </p>
+      <button
+        type="button"
+        style={{
+          cursor: "pointer",
+          border: "1px solid #475569",
+          background: "transparent",
+          color: "#0f172a",
+          borderRadius: 10,
+          padding: "10px 14px",
+          fontWeight: 600,
+        }}
+      >
+        Secondary
+      </button>
+    </section>
+  );
+}
+`;
+}
+
+function buildMockResult(prompt: string, variantCount: 1 | 2 | 3): GenerationResult {
+  const variants: Variant[] = [];
+  for (let id = 1 as 1 | 2 | 3; id <= variantCount; id = (id + 1) as 1 | 2 | 3) {
+    variants.push({
+      id,
+      description: `Mock variant ${id}`,
+      code: buildMockVariantCode(id, prompt),
+    });
+  }
+
+  return {
+    componentName: inferComponentName(prompt),
+    variants,
+    dependencies: [],
+  };
 }
 
 async function pickVariant(
@@ -76,6 +178,7 @@ export function registerGenerate(program: Command): void {
     .option("-v, --variants <n>", "Number of variants (1-3)", "1")
     .option("-m, --model <id>", "sonnet | opus", "sonnet")
     .option("-o, --out <dir>", "Override components directory")
+    .option("--mock", "Use local mock variants (no Claude API call)")
     .action(async (prompt: string, opts: GenerateCliOptions) => {
       const variantCount = parseVariantCount(opts.variants);
       const model = parseModel(opts.model);
@@ -92,39 +195,56 @@ export function registerGenerate(program: Command): void {
         : ctx.componentsDir;
 
       const spinner = p.spinner();
-      spinner.start(
-        `Generating ${variantCount} variant(s) with ${model}…`,
-      );
+      let result: GenerationResult;
+      let reports: readonly VariantReport[] = [];
+      let sessionId = "";
 
-      const outcome = await generate({
-        userPrompt: prompt,
-        context: ctx,
-        variantCount,
-        model,
-        cwd,
-        config,
-      });
+      if (opts.mock) {
+        spinner.start(`Generating ${variantCount} mock variant(s)…`);
+        result = buildMockResult(prompt, variantCount);
+        sessionId = `mock-${Date.now()}`;
+        spinner.stop(
+          pc.green(`✓ Generated ${result.variants.length} mock variant(s) (no model call)`),
+        );
+      } else {
+        spinner.start(
+          `Generating ${variantCount} variant(s) with ${model}…`,
+        );
 
-      if (!outcome.ok) {
-        spinner.stop(pc.red(`✗ ${outcome.error.message}`));
-        if (outcome.reports) renderReports(outcome.reports);
-        process.exitCode = 1;
-        return;
+        const outcome = await generate({
+          userPrompt: prompt,
+          context: ctx,
+          variantCount,
+          model,
+          cwd,
+          config,
+        });
+
+        if (!outcome.ok) {
+          spinner.stop(pc.red(`✗ ${outcome.error.message}`));
+          if (outcome.reports) renderReports(outcome.reports);
+          process.exitCode = 1;
+          return;
+        }
+
+        const repairNote =
+          outcome.repairsUsed > 0
+            ? ` after ${outcome.repairsUsed} repair${outcome.repairsUsed === 1 ? "" : "s"}`
+            : "";
+        spinner.stop(
+          pc.green(
+            `✓ Generated ${outcome.result.variants.length} variant(s)${repairNote} ` +
+              `(${outcome.inputTokens + outcome.outputTokens} tokens, ` +
+              `$${outcome.costUsd.toFixed(4)})`,
+          ),
+        );
+
+        result = outcome.result;
+        reports = outcome.reports;
+        sessionId = outcome.sessionId;
       }
 
-      const repairNote =
-        outcome.repairsUsed > 0
-          ? ` after ${outcome.repairsUsed} repair${outcome.repairsUsed === 1 ? "" : "s"}`
-          : "";
-      spinner.stop(
-        pc.green(
-          `✓ Generated ${outcome.result.variants.length} variant(s)${repairNote} ` +
-            `(${outcome.inputTokens + outcome.outputTokens} tokens, ` +
-            `$${outcome.costUsd.toFixed(4)})`,
-        ),
-      );
-
-      const warnings = outcome.reports.flatMap((r) =>
+      const warnings = reports.flatMap((r) =>
         r.report.issues.filter((i) => i.severity === "warning"),
       );
       if (warnings.length > 0) {
@@ -138,14 +258,14 @@ export function registerGenerate(program: Command): void {
       }
 
       const name =
-        outcome.result.componentName ||
+        result.componentName ||
         inferComponentName(prompt);
 
       try {
         await materializeVariants({
           projectRoot: cwd,
           componentName: name,
-          variants: outcome.result.variants.map((v) => ({
+          variants: result.variants.map((v) => ({
             id: v.id,
             code: v.code,
           })),
@@ -160,7 +280,7 @@ export function registerGenerate(program: Command): void {
         p.note(msg, pc.yellow("Preview unavailable"));
       }
 
-      const picked = await pickVariant(outcome.result);
+      const picked = await pickVariant(result);
       if (!picked) {
         p.cancel("Cancelled.");
         return;
@@ -176,13 +296,13 @@ export function registerGenerate(program: Command): void {
 
       p.note(written.relPath, "Wrote component");
 
-      if (outcome.result.dependencies.length > 0) {
+      if (result.dependencies.length > 0) {
         p.note(
-          `${ctx.packageManager} add ${outcome.result.dependencies.join(" ")}`,
+          `${ctx.packageManager} add ${result.dependencies.join(" ")}`,
           "Install dependencies",
         );
       }
 
-      p.outro(pc.dim(`session: ${outcome.sessionId}`));
+      p.outro(pc.dim(`session: ${sessionId}`));
     });
 }
