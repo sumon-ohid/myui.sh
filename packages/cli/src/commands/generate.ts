@@ -10,6 +10,7 @@ import {
   type Variant,
   type VariantReport,
 } from "@myui/core";
+import { getStatus, materializeVariants, startDaemon } from "@myui/preview";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
@@ -136,15 +137,34 @@ export function registerGenerate(program: Command): void {
         );
       }
 
+      const name =
+        outcome.result.componentName ||
+        inferComponentName(prompt);
+
+      try {
+        await materializeVariants({
+          projectRoot: cwd,
+          componentName: name,
+          variants: outcome.result.variants.map((v) => ({
+            id: v.id,
+            code: v.code,
+          })),
+        });
+        const status = await getStatus(cwd);
+        const running = status.running
+          ? status
+          : await startDaemon({ projectRoot: cwd });
+        p.note(running.url ?? "(no url)", "Preview");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        p.note(msg, pc.yellow("Preview unavailable"));
+      }
+
       const picked = await pickVariant(outcome.result);
       if (!picked) {
         p.cancel("Cancelled.");
         return;
       }
-
-      const name =
-        outcome.result.componentName ||
-        inferComponentName(prompt);
 
       const written = await writeVariant({
         projectRoot: cwd,

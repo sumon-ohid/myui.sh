@@ -1,9 +1,21 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { registerDaemon } from "./commands/daemon.js";
 import { registerGenerate } from "./commands/generate.js";
 import { registerInit } from "./commands/init.js";
+import { registerSmoke } from "./commands/smoke.js";
+
+function installSignalHandlers(): void {
+  const onSignal = (sig: NodeJS.Signals) => {
+    process.stderr.write(`\nmyui: received ${sig}, exiting\n`);
+    process.exit(130);
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+}
 
 function main(): void {
+  installSignalHandlers();
   const program = new Command();
 
   program
@@ -13,6 +25,8 @@ function main(): void {
 
   registerInit(program);
   registerGenerate(program);
+  registerDaemon(program);
+  registerSmoke(program);
 
   program.parseAsync(process.argv).catch((err: unknown) => {
     const msg = err instanceof Error ? err.message : String(err);
