@@ -11,6 +11,8 @@ import {
   GenerationResultSchema,
   type GenerationResult,
 } from "./schema.js";
+import { classifyScope, type ComponentScope } from "./scope.js";
+import { scanShadcnPrimitives } from "./shadcn.js";
 
 export type ModelId = "claude-sonnet-4-6" | "claude-opus-4-7";
 
@@ -30,6 +32,7 @@ export interface GenerateSuccess {
   readonly costUsd: number;
   readonly inputTokens: number;
   readonly outputTokens: number;
+  readonly scope: ComponentScope;
 }
 
 export interface GenerateFailure {
@@ -60,16 +63,18 @@ const variantInputShape = {
 export async function generate(
   options: GenerateOptions,
 ): Promise<GenerateOutcome> {
-  const systemPrompt = buildSystemPrompt({
+  const scope = classifyScope(options.userPrompt);
+  const primitives = await scanShadcnPrimitives(options.context);
+
+  const promptArgs = {
     userPrompt: options.userPrompt,
     context: options.context,
     variantCount: options.variantCount,
-  });
-  const userPrompt = buildUserPrompt({
-    userPrompt: options.userPrompt,
-    context: options.context,
-    variantCount: options.variantCount,
-  });
+    scope,
+    primitives,
+  };
+  const systemPrompt = buildSystemPrompt(promptArgs);
+  const userPrompt = buildUserPrompt(promptArgs);
 
   let captured: unknown;
 
@@ -176,5 +181,6 @@ export async function generate(
     costUsd,
     inputTokens,
     outputTokens,
+    scope: scope.scope,
   };
 }

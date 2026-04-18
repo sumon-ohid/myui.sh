@@ -21,6 +21,10 @@ export type {
   ModelId,
 } from "./generate.js";
 export { inferComponentName } from "./name.js";
+export { classifyScope } from "./scope.js";
+export type { ComponentScope, ScopeHint } from "./scope.js";
+export { scanShadcnPrimitives } from "./shadcn.js";
+export type { ShadcnPrimitive } from "./shadcn.js";
 export {
   GenerationResultSchema,
   VariantIdSchema,
