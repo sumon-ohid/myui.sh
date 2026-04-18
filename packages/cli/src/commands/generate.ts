@@ -1,0 +1,138 @@
+import {
+  detectProjectContext,
+  generate,
+  inferComponentName,
+  writeVariant,
+  type GenerationResult,
+  type ModelId,
+  type Variant,
+} from "@myui/core";
+import * as p from "@clack/prompts";
+import type { Command } from "commander";
+import pc from "picocolors";
+
+interface GenerateCliOptions {
+  readonly variants?: string;
+  readonly model?: string;
+  readonly out?: string;
+}
+
+function parseVariantCount(raw: string | undefined): 1 | 2 | 3 {
+  if (!raw) return 1;
+  const n = Number.parseInt(raw, 10);
+  if (n === 1 || n === 2 || n === 3) return n;
+  throw new Error(`--variants must be 1, 2, or 3 (got "${raw}")`);
+}
+
+function parseModel(raw: string | undefined): ModelId {
+  if (!raw || raw === "sonnet") return "claude-sonnet-4-6";
+  if (raw === "opus") return "claude-opus-4-7";
+  if (raw === "claude-sonnet-4-6" || raw === "claude-opus-4-7") return raw;
+  throw new Error(`--model must be sonnet or opus (got "${raw}")`);
+}
+
+async function pickVariant(
+  result: GenerationResult,
+): Promise<Variant | null> {
+  if (result.variants.length === 1) {
+    const only = result.variants[0];
+    if (!only) return null;
+    return only;
+  }
+
+  const choice = await p.select({
+    message: "Which variant would you like to keep?",
+    options: [
+      ...result.variants.map((v) => ({
+        value: String(v.id),
+        label: `Variant ${v.id}`,
+        hint: v.description,
+      })),
+      { value: "cancel", label: "Cancel — discard all" },
+    ],
+  });
+
+  if (p.isCancel(choice) || choice === "cancel") return null;
+  const picked = result.variants.find((v) => String(v.id) === choice);
+  return picked ?? null;
+}
+
+export function registerGenerate(program: Command): void {
+  program
+    .command("generate <prompt>")
+    .alias("gen")
+    .description("Generate a UI component from a prompt")
+    .option("-v, --variants <n>", "Number of variants (1-3)", "1")
+    .option("-m, --model <id>", "sonnet | opus", "sonnet")
+    .option("-o, --out <dir>", "Override components directory")
+    .action(async (prompt: string, opts: GenerateCliOptions) => {
+      const variantCount = parseVariantCount(opts.variants);
+      const model = parseModel(opts.model);
+
+      const cwd = process.cwd();
+      p.intro(pc.bgCyan(pc.black(" myui ")));
+
+      const ctx = await detectProjectContext(cwd);
+      const componentsDir = opts.out
+        ? opts.out.startsWith("/")
+          ? opts.out
+          : `${cwd}/${opts.out}`
+        : ctx.componentsDir;
+
+      const spinner = p.spinner();
+      spinner.start(
+        `Generating ${variantCount} variant(s) with ${model}…`,
+      );
+
+      const outcome = await generate({
+        userPrompt: prompt,
+        context: ctx,
+        variantCount,
+        model,
+        cwd,
+      });
+
+      if (!outcome.ok) {
+        spinner.stop(pc.red(`✗ ${outcome.error.message}`));
+        process.exitCode = 1;
+        return;
+      }
+
+      spinner.stop(
+        pc.green(
+          `✓ Generated ${outcome.result.variants.length} variant(s) ` +
+            `(${outcome.inputTokens + outcome.outputTokens} tokens, ` +
+            `$${outcome.costUsd.toFixed(4)})`,
+        ),
+      );
+
+      const picked = await pickVariant(outcome.result);
+      if (!picked) {
+        p.cancel("Cancelled.");
+        return;
+      }
+
+      const name =
+        outcome.result.componentName ||
+        inferComponentName(prompt);
+
+      const written = await writeVariant({
+        projectRoot: cwd,
+        componentsDir,
+        componentName: name,
+        code: picked.code,
+        extension: ctx.typescript ? "tsx" : "jsx",
+      });
+
+      p.note(written.relPath, "Wrote component");
+
+      if (outcome.result.dependencies.length > 0) {
+        p.note(
+          `${ctx.packageManager} add ${outcome.result.dependencies.join(" ")}`,
+          "Install dependencies",
+        );
+      }
+
+      p.outro(pc.dim(`session: ${outcome.sessionId}`));
+    });
+}
