@@ -124,7 +124,7 @@ function removeRuntimeImports(src: string, { keepSlotImport }: { keepSlotImport:
   let out = src;
   if (!keepSlotImport) {
     out = out.replace(
-      /^import\s+\{([^}]*)\}\s+from\s+["']@myui\/runtime["'];\s*\n/m,
+      /^import\s+\{([^}]*)\}\s+from\s+["']@myui-sh\/runtime["'];\s*\n/m,
       (full, inner: string) => {
         const remaining = inner
           .split(",")

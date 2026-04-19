@@ -275,7 +275,7 @@ if (framework === "nextjs" || framework === "nextjs-src") {
   if (!existsSync(apiDest)) {
     const templateCandidates = [
       join(RUNTIME_PKG, "templates", "api-apply-route.ts"),
-      join(root, "node_modules", "@myui", "runtime", "templates", "api-apply-route.ts"),
+      join(root, "node_modules", "@myui-sh", "runtime", "templates", "api-apply-route.ts"),
     ];
     const templateSrc = templateCandidates.find((p) => existsSync(p));
     if (templateSrc) {
