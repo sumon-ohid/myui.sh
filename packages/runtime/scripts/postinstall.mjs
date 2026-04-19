@@ -10,6 +10,7 @@ const FORCE_UPDATE_FILES = new Set([
   "skills/myui/SKILL.md",
   "skills/myui/scripts/scaffold-runtime.mjs",
   "skills/myui/scripts/validate.mjs",
+  "skills/myui/scripts/preflight.mjs",
 ]);
 
 async function exists(path) {

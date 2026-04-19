@@ -10,7 +10,9 @@ import { fileURLToPath } from "node:url";
 const root = resolve(process.argv[2] ?? ".");
 const report = { root, steps: [], ok: true };
 const SKILL_DIR = dirname(fileURLToPath(import.meta.url));
-const RUNTIME_PKG = resolve(SKILL_DIR, "../../../packages/runtime");
+// SKILL_DIR = <runtime>/templates/copilot/skills/myui/scripts
+// Up 5 = <runtime>
+const RUNTIME_PKG = resolve(SKILL_DIR, "../../../../..");
 
 function step(name, status, detail) {
   report.steps.push({ name, status, detail });
@@ -103,12 +105,25 @@ const slotsPath = join(myuiDir, "slots.json");
 const existingConfig = existsSync(configPath)
   ? JSON.parse(readFileSync(configPath, "utf8"))
   : {};
+const DESIGN_DEFAULTS = {
+  aesthetic: "",
+  density: "comfortable",
+  motion: "subtle",
+  hierarchy: "typography-led",
+  designSystem: "",
+  iconSet: "",
+  variantCount: 3,
+  referencesPath: "REFERENCES.md",
+  inspoDir: ".myui/inspo",
+};
+const existingDesign = (existingConfig && typeof existingConfig.design === "object" && existingConfig.design) || {};
 const config = {
   ...existingConfig,
   framework,
   appDir: relative(root, appDir),
   variantsDir: relative(root, variantsDir),
   variantsImportPath,
+  design: { ...DESIGN_DEFAULTS, ...existingDesign },
 };
 writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 step("config.json", "written", configPath);
@@ -231,25 +246,36 @@ if (layoutPath) {
   let changed = false;
 
   if (!src.includes("MyuiSlotBootstrap")) {
-    const importLine = `import { MyuiSlotBootstrap } from "${variantsImportPath}/_index";\n`;
+    const importLine1 = `import "${variantsImportPath}/_index";\n`;
+    const importLine2 = `import { MyuiSlotBootstrap } from "${variantsImportPath}/_index";\n`;
     const lastImport = src.match(/^(import[^\n]*\n)+/m);
-    src = lastImport
-      ? src.replace(lastImport[0], lastImport[0] + importLine)
-      : importLine + src;
+    
+    if (lastImport) {
+        if (!src.includes(importLine1)) {
+            src = src.replace(lastImport[0], lastImport[0] + importLine1);
+        }
+        if (!src.includes(importLine2)) {
+            src = src.replace(lastImport[0], lastImport[0] + importLine2);
+        }
+    } else {
+        src = importLine1 + importLine2 + src;
+    }
     changed = true;
   }
 
   if (!src.includes("<MyuiSlotBootstrap")) {
     if (src.includes("<MyuiOverlay />")) {
-      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiOverlay />\n$1<MyuiSlotBootstrap />");
+      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiOverlay />$1<MyuiSlotBootstrap />");
+      changed = true;
     } else if (src.includes("</MyuiRegistryProvider>")) {
       src = src.replace(/(\s*)<\/MyuiRegistryProvider>/, "$1  <MyuiSlotBootstrap />$1</MyuiRegistryProvider>");
+      changed = true;
     } else if (src.includes("</body>")) {
       src = src.replace(/(\s*)<\/body>/, "$1  <MyuiSlotBootstrap />$1</body>");
+      changed = true;
     } else {
       step("layout-slot-bootstrap", "warn", "no </body> - add <MyuiSlotBootstrap /> manually");
     }
-    changed = true;
   }
 
   if (changed) {
@@ -279,6 +305,35 @@ if (framework === "nextjs" || framework === "nextjs-src") {
   }
 } else {
   step("api-route", "skip", `not applicable for ${framework}`);
+}
+
+const referencesDest = join(root, "REFERENCES.md");
+if (!existsSync(referencesDest)) {
+  const referencesCandidates = [
+    join(RUNTIME_PKG, "templates", "REFERENCES.md"),
+    join(root, "node_modules", "@myui-sh", "runtime", "templates", "REFERENCES.md"),
+  ];
+  const referencesSrc = referencesCandidates.find((p) => existsSync(p));
+  if (referencesSrc) {
+    copyFileSync(referencesSrc, referencesDest);
+    step("REFERENCES.md", "created", relative(root, referencesDest));
+  } else {
+    step("REFERENCES.md", "warn", "template not found - skipped");
+  }
+} else {
+  step("REFERENCES.md", "skip", "exists");
+}
+
+const inspoDirPath = join(myuiDir, "inspo");
+if (!existsSync(inspoDirPath)) {
+  mkdirSync(inspoDirPath, { recursive: true });
+  writeFileSync(
+    join(inspoDirPath, ".gitkeep"),
+    "# Drop screenshots, notes, or .md files here. Preflight scans this folder.\n",
+  );
+  step(".myui/inspo", "created", relative(root, inspoDirPath));
+} else {
+  step(".myui/inspo", "skip", "exists");
 }
 
 const giPath = join(root, ".gitignore");
