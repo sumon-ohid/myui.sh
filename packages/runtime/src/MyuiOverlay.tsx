@@ -77,7 +77,7 @@ function Dock({ initialSlotId }: MyuiOverlayProps) {
         role="status"
         aria-live="polite"
       >
-        <span style={{ fontWeight: 600, padding: "0 0.25rem", color: "#fff" }}>myui</span>
+        <span style={{ fontWeight: 600, padding: "0 0.25rem", color: "#000000" }}>myui</span>
         <span style={{ opacity: 0.5, fontSize: "11px" }}>no slots active</span>
       </aside>
     );
