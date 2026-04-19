@@ -120,8 +120,8 @@ importers:
   test-myui:
     dependencies:
       '@myui-sh/runtime':
-        specifier: ^0.1.0
-        version: 0.1.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.1.2
+        version: 0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       next:
         specifier: 16.2.4
         version: 16.2.4(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -841,8 +841,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@myui-sh/runtime@0.1.0':
-    resolution: {integrity: sha512-8GdhFbfFdujRYmkLXZMfY8hi7w6HgcCbHy5KoXes7GGJ1h1tvUrJW/01yOTP1t+55j73Tw83K2K93mH7k5OoBA==}
+  '@myui-sh/runtime@0.1.2':
+    resolution: {integrity: sha512-qvrhgD/jCsKD4U2ENjDnW0Nw5MgZjEhSItYVakYnJyDeXd7RqRjWhkw2A8mDqXjX72M9Y5sQoS8afOxuhZkBBA==}
     peerDependencies:
       react: '>=18'
       react-dom: '>=18'
@@ -3602,7 +3602,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@myui-sh/runtime@0.1.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@myui-sh/runtime@0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
