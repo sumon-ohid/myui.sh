@@ -79,11 +79,11 @@ const { appDir, layoutPatterns, aliasRoot, framework } = detected;
 const layoutPath = layoutPatterns.map((p) => join(root, p)).find((p) => existsSync(p));
 const variantsDir = join(appDir, "myui-variants");
 const variantsDirRel = relative(root, variantsDir) + "/";
-const aliasPath = aliasRoot
-  ? `@/${aliasRoot.replace(/\/$/, "")}/${relative(join(root, aliasRoot), variantsDir).replace(/\\/g, "/")}`
-  : `@/${relative(root, variantsDir).replace(/\\/g, "/")}`;
+const layoutDir = layoutPath ? dirname(layoutPath) : appDir;
+const relPath = relative(layoutDir, variantsDir).replace(/\\/g, "/");
+const variantsImportPath = relPath.startsWith(".") ? relPath : `./${relPath}`;
 
-step("detect", "ok", `framework: ${framework}, appDir: ${relative(root, appDir)}, alias: ${aliasPath}`);
+step("detect", "ok", `framework: ${framework}, appDir: ${relative(root, appDir)}, variantsImport: ${variantsImportPath}`);
 
 const pkgPath = join(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
@@ -108,7 +108,7 @@ const config = {
   framework,
   appDir: relative(root, appDir),
   variantsDir: relative(root, variantsDir),
-  aliasPath,
+  variantsImportPath,
 };
 writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 step("config.json", "written", configPath);
@@ -154,7 +154,9 @@ if (!layoutPath) {
   }
 
   if (!src.includes("MyuiOverlay")) {
-    if (src.includes("</body>")) {
+    if (src.includes("</MyuiRegistryProvider>")) {
+      src = src.replace(/(\s*)<\/MyuiRegistryProvider>/, "$1  <MyuiOverlay />$1</MyuiRegistryProvider>");
+    } else if (src.includes("</body>")) {
       src = src.replace(/(\s*)<\/body>/, "$1  <MyuiOverlay />$1</body>");
     } else {
       step("layout", "warn", "no </body> - add <MyuiOverlay /> manually");
@@ -229,8 +231,8 @@ if (layoutPath) {
   let changed = false;
 
   if (!src.includes("MyuiSlotBootstrap")) {
-    const importLine1 = `import "${aliasPath}/_index";\n`;
-    const importLine2 = `import { MyuiSlotBootstrap } from "${aliasPath}/_index";\n`;
+    const importLine1 = `import "${variantsImportPath}/_index";\n`;
+    const importLine2 = `import { MyuiSlotBootstrap } from "${variantsImportPath}/_index";\n`;
     const lastImport = src.match(/^(import[^\n]*\n)+/m);
     
     if (lastImport) {
@@ -248,7 +250,10 @@ if (layoutPath) {
 
   if (!src.includes("<MyuiSlotBootstrap")) {
     if (src.includes("<MyuiOverlay />")) {
-      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiSlotBootstrap />$1<MyuiOverlay />");
+      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiOverlay />$1<MyuiSlotBootstrap />");
+      changed = true;
+    } else if (src.includes("</MyuiRegistryProvider>")) {
+      src = src.replace(/(\s*)<\/MyuiRegistryProvider>/, "$1  <MyuiSlotBootstrap />$1</MyuiRegistryProvider>");
       changed = true;
     } else if (src.includes("</body>")) {
       src = src.replace(/(\s*)<\/body>/, "$1  <MyuiSlotBootstrap />$1</body>");

@@ -1,6 +1,6 @@
 {
   "name": "@myui-sh/runtime",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "In-app variant overlay for myui — slot-based UI generation in your running Next.js app.",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,8 +13,14 @@
     },
     "./styles.css": "./dist/styles.css"
   },
-  "files": ["dist", "templates", "scripts"],
-  "sideEffects": ["./dist/styles.css"],
+  "files": [
+    "dist",
+    "templates",
+    "scripts"
+  ],
+  "sideEffects": [
+    "./dist/styles.css"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
     "typecheck": "tsc -p tsconfig.json --noEmit",
