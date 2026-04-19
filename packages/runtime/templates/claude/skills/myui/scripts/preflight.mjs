@@ -154,7 +154,17 @@ async function main() {
   }
 
   const cfg = await readJsonSafe(join(root, ".myui", "config.json"));
-  if (cfg) report.config = cfg;
+  if (cfg) {
+    report.config = cfg;
+    report.design = cfg.design ?? null;
+    if (!cfg.design) {
+      report.notes.push("config.design missing — rerun scaffold-runtime or set .myui/config.json design block (aesthetic, density, motion, hierarchy)");
+    } else if (!cfg.design.aesthetic) {
+      report.notes.push("config.design.aesthetic is empty — ask user to set it (e.g. 'Vercel-minimal', 'Linear-dense')");
+    }
+  } else {
+    report.notes.push(".myui/config.json not found — run scaffold-runtime.mjs first");
+  }
   const slots = await readJsonSafe(join(root, ".myui", "slots.json"));
   if (slots) report.slots = slots;
 

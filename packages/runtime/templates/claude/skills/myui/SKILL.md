@@ -53,7 +53,13 @@ Hierarchy: <typography-led | color-led | space-led | asymmetry-led>
 Primitives: <shadcn | radix | custom:name>
 ```
 
-This anchors the model. No taste block → no code.
+**Source priority**:
+1. Preflight `config.design` (`.myui/config.json` → `design` block) — use these values as defaults.
+2. User prompt overrides (if user explicitly says "make it dense", honor it).
+3. Inferred from tokens / sample components when config fields empty.
+4. Ask the user only if still ambiguous.
+
+No taste block → no code.
 
 ---
 

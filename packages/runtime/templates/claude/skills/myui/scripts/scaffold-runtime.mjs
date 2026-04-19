@@ -103,12 +103,25 @@ const slotsPath = join(myuiDir, "slots.json");
 const existingConfig = existsSync(configPath)
   ? JSON.parse(readFileSync(configPath, "utf8"))
   : {};
+const DESIGN_DEFAULTS = {
+  aesthetic: "",
+  density: "comfortable",
+  motion: "subtle",
+  hierarchy: "typography-led",
+  designSystem: "",
+  iconSet: "",
+  variantCount: 3,
+  referencesPath: "REFERENCES.md",
+  inspoDir: ".myui/inspo",
+};
+const existingDesign = (existingConfig && typeof existingConfig.design === "object" && existingConfig.design) || {};
 const config = {
   ...existingConfig,
   framework,
   appDir: relative(root, appDir),
   variantsDir: relative(root, variantsDir),
   variantsImportPath,
+  design: { ...DESIGN_DEFAULTS, ...existingDesign },
 };
 writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 step("config.json", "written", configPath);
