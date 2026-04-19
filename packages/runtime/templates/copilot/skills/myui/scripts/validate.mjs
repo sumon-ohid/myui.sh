@@ -164,7 +164,7 @@ async function main() {
     process.exit(0);
   }
 
-  const slotDir = resolve(projectRoot, "src", ".myui-variants", slotId);
+  const slotDir = resolve(projectRoot, "src", "myui-variants", slotId);
   let entries;
   try {
     const s = await stat(slotDir);

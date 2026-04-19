@@ -11,7 +11,7 @@ function getVariantsDir(): string {
   } catch {
     // fall through to default
   }
-  return join(ROOT, "app", ".myui-variants");
+  return join(ROOT, "app", "myui-variants");
 }
 
 const VARIANTS_DIR = getVariantsDir();
@@ -42,7 +42,7 @@ function readSlotsMeta(): { slots: Record<string, { file: string }> } | null {
 function stripMyuiSlot(src: string): string {
   let out = src;
   out = out.replace(/^import\s+\{[^}]*MyuiSlot[^}]*\}\s+from\s+["']@myui\/runtime["'];\n?/m, "");
-  out = out.replace(/^import\s+["'][^"']*\.myui-variants\/_index["'];\n?/m, "");
+  out = out.replace(/^import\s+["'][^"']*\.?myui-variants\/_index["'];\n?/m, "");
   out = out.replace(/<MyuiSlot[^>]*>\n?([\s\S]*?)<\/MyuiSlot>/g, (_, inner) =>
     inner.replace(/^\n/, "").replace(/\n?$/, ""),
   );

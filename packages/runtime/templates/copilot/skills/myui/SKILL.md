@@ -25,8 +25,8 @@ This wires runtime overlay and creates generated variant folders.
 ## Variant workflow
 
 1. Wrap target region with MyuiSlot id.
-2. Write Variant1..VariantN files under src/.myui-variants/<slot-id>/.
-3. Update src/.myui-variants/_index.ts with registerSlots import mapping.
+2. Write Variant1..VariantN files under src/myui-variants/<slot-id>/.
+3. Update src/myui-variants/_index.ts with registerSlots import mapping.
 4. Validate variants:
    node ~/.copilot/skills/myui/scripts/validate.mjs <project-root> <slot-id>
 5. If validation fails, repair only failing variants and revalidate.

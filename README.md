@@ -71,4 +71,4 @@ pnpm add @myui/runtime@latest
 node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
 ```
 
-Expected fix: `app/.myui-variants/_index.ts` becomes a client bootstrap component (`MyuiSlotBootstrap`) instead of server-side `registerSlots(...)` execution at module top level.
+Expected fix: `app/myui-variants/_index.ts` becomes a client bootstrap component (`MyuiSlotBootstrap`) instead of server-side `registerSlots(...)` execution at module top level.

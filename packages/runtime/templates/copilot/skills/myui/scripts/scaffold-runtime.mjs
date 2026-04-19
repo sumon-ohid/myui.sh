@@ -77,7 +77,7 @@ const detected = frameworkCandidates.find((c) => c.check()) ?? {
 
 const { appDir, layoutPatterns, aliasRoot, framework } = detected;
 const layoutPath = layoutPatterns.map((p) => join(root, p)).find((p) => existsSync(p));
-const variantsDir = join(appDir, ".myui-variants");
+const variantsDir = join(appDir, "myui-variants");
 const variantsDirRel = relative(root, variantsDir) + "/";
 const aliasPath = aliasRoot
   ? `@/${aliasRoot.replace(/\/$/, "")}/${relative(join(root, aliasRoot), variantsDir).replace(/\\/g, "/")}`
