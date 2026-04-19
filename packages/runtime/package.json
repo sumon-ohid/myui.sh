@@ -13,7 +13,7 @@
     },
     "./styles.css": "./dist/styles.css"
   },
-  "files": ["dist"],
+  "files": ["dist", "templates"],
   "sideEffects": ["./dist/styles.css"],
   "scripts": {
     "build": "tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
