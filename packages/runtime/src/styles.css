@@ -7,6 +7,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.65rem;
+  max-width: calc(100vw - 2rem);
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
@@ -41,6 +42,14 @@
   display: flex;
   align-items: center;
   gap: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 260px;
+}
+
+.myui-dock__group::-webkit-scrollbar {
+  display: none;
 }
 
 .myui-dock__divider {
@@ -51,9 +60,10 @@
 }
 
 .myui-dock__pill {
-  min-width: 30px;
-  height: 26px;
-  padding: 0 0.55rem;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 0.45rem;
+  flex-shrink: 0;
   border-radius: 9999px;
   border: 0;
   background: transparent;

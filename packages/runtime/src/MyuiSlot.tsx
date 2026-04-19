@@ -53,9 +53,5 @@ export function MyuiSlot({ id, children }: MyuiSlotProps) {
 
   const Variant = variants[active - 1];
   if (!Variant) return <>{children}</>;
-  return (
-    <div data-myui-slot={id} data-myui-variant={active}>
-      <Variant />
-    </div>
-  );
+  return <Variant />;
 }
