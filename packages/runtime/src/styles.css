@@ -116,6 +116,31 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+.myui-dock__chip--apply {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: rgb(99, 102, 241);
+  font-weight: 600;
+}
+
+.myui-dock__chip--apply:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.myui-dock[data-theme="dark"] .myui-dock__chip--apply {
+  border-color: rgba(129, 140, 248, 0.4);
+  color: rgb(129, 140, 248);
+}
+
+.myui-dock[data-theme="dark"] .myui-dock__chip--apply:hover {
+  background: rgba(129, 140, 248, 0.1);
+}
+
+.myui-dock__chip--apply:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .myui-dock__chip[aria-pressed="true"] {
   background: #111;
   color: #fff;

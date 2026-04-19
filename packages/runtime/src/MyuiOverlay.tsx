@@ -172,6 +172,9 @@ function Dock({ initialSlotId }: MyuiOverlayProps) {
         >
           {theme === "dark" ? "Dark" : "Light"}
         </button>
+        {activeSlot && activeSlot.active > 0 && (
+          <ApplyButton slotId={activeSlot.id} variantIndex={activeSlot.active} />
+        )}
         <button
           type="button"
           className="myui-dock__icon"
@@ -198,6 +201,39 @@ function Dock({ initialSlotId }: MyuiOverlayProps) {
         )}
       </div>
     </aside>
+  );
+}
+
+function ApplyButton({ slotId, variantIndex }: { slotId: string; variantIndex: number }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  const apply = async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/myui/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotId, variantIndex }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setStatus("done");
+      setTimeout(() => window.location.reload(), 600);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 2000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="myui-dock__chip myui-dock__chip--apply"
+      onClick={apply}
+      disabled={status === "loading" || status === "done"}
+      title={`Apply variant ${variantIndex} to codebase`}
+    >
+      {status === "loading" ? "Applying…" : status === "done" ? "Applied ✓" : status === "error" ? "Error" : "Apply"}
+    </button>
   );
 }
 
