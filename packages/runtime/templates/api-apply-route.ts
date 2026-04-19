@@ -16,6 +16,29 @@ function getVariantsDir(): string {
 
 const VARIANTS_DIR = getVariantsDir();
 
+function readSlotsMeta(): { slots: Record<string, { file: string }> } | null {
+  const slotsPath = join(ROOT, ".myui", "slots.json");
+  try {
+    const parsed = JSON.parse(readFileSync(slotsPath, "utf8"));
+    if (parsed?.slots && typeof parsed.slots === "object") {
+      return { slots: parsed.slots };
+    }
+  } catch {
+    // fall through
+  }
+
+  try {
+    const config = JSON.parse(readFileSync(join(ROOT, ".myui", "config.json"), "utf8"));
+    if (config?.slots && typeof config.slots === "object") {
+      return { slots: config.slots };
+    }
+  } catch {
+    // no legacy config slots
+  }
+
+  return null;
+}
+
 function stripMyuiSlot(src: string): string {
   let out = src;
   out = out.replace(/^import\s+\{[^}]*MyuiSlot[^}]*\}\s+from\s+["']@myui\/runtime["'];\n?/m, "");
@@ -39,11 +62,12 @@ export async function POST(req: Request) {
   }
 
   const slotsPath = join(ROOT, ".myui", "slots.json");
-  let slotsJson: { slots: Record<string, { file: string }> };
-  try {
-    slotsJson = JSON.parse(readFileSync(slotsPath, "utf8"));
-  } catch {
-    return NextResponse.json({ error: "could not read .myui/slots.json" }, { status: 500 });
+  const slotsJson = readSlotsMeta();
+  if (!slotsJson) {
+    return NextResponse.json(
+      { error: "could not read slot metadata (.myui/slots.json or legacy .myui/config.json slots)" },
+      { status: 500 },
+    );
   }
 
   const slot = slotsJson.slots?.[slotId];

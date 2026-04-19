@@ -54,7 +54,7 @@ async function copyTree(srcDir, dstDir, counts, relBase = "") {
 }
 
 async function main() {
-  if (process.env.MYUI_SKIP_CLAUDE_BOOTSTRAP === "1") {
+  if (process.env.MYUI_SKIP_SKILL_BOOTSTRAP === "1") {
     return;
   }
 
@@ -65,24 +65,41 @@ async function main() {
 
   const here = dirname(fileURLToPath(import.meta.url));
   const pkgRoot = resolve(here, "..");
-  const templateRoot = resolve(pkgRoot, "templates", "claude");
-  const claudeRoot = resolve(home, ".claude");
+  const targets = [
+    {
+      name: "Claude",
+      skipFlag: "MYUI_SKIP_CLAUDE_BOOTSTRAP",
+      templateRoot: resolve(pkgRoot, "templates", "claude"),
+      installRoot: resolve(home, ".claude"),
+    },
+    {
+      name: "Copilot",
+      skipFlag: "MYUI_SKIP_COPILOT_BOOTSTRAP",
+      templateRoot: resolve(pkgRoot, "templates", "copilot"),
+      installRoot: resolve(home, ".copilot"),
+    },
+  ];
 
-  if (!(await exists(templateRoot))) {
-    return;
-  }
+  for (const target of targets) {
+    if (process.env[target.skipFlag] === "1") {
+      continue;
+    }
+    if (!(await exists(target.templateRoot))) {
+      continue;
+    }
 
-  const counts = { created: 0, updated: 0, skipped: 0 };
-  await copyTree(templateRoot, claudeRoot, counts);
+    const counts = { created: 0, updated: 0, skipped: 0 };
+    await copyTree(target.templateRoot, target.installRoot, counts);
 
-  if (counts.created > 0 || counts.updated > 0) {
-    process.stdout.write(
-      `[myui] Installed Claude templates in ${claudeRoot} (${counts.created} created, ${counts.updated} updated, ${counts.skipped} existing).\n`,
-    );
+    if (counts.created > 0 || counts.updated > 0) {
+      process.stdout.write(
+        `[myui] Installed ${target.name} templates in ${target.installRoot} (${counts.created} created, ${counts.updated} updated, ${counts.skipped} existing).\n`,
+      );
+    }
   }
 } 
 
 main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`[myui] Claude bootstrap skipped: ${message}\n`);
+  process.stderr.write(`[myui] Skill bootstrap skipped: ${message}\n`);
 });
