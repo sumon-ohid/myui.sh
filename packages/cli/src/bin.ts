@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { registerDaemon } from "./commands/daemon.js";
 import { registerGenerate } from "./commands/generate.js";
 import { registerInit } from "./commands/init.js";
+import { registerRefine } from "./commands/refine.js";
 import { registerSmoke } from "./commands/smoke.js";
 
 function installSignalHandlers(): void {
@@ -25,6 +26,7 @@ function main(): void {
 
   registerInit(program);
   registerGenerate(program);
+  registerRefine(program);
   registerDaemon(program);
   registerSmoke(program);
 

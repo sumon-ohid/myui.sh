@@ -19,15 +19,23 @@ export {
   MyUiError,
   SchemaValidationError,
 } from "./errors.js";
-export { generate } from "./generate.js";
+export { generate, refine } from "./generate.js";
 export type {
   GenerateFailure,
   GenerateOptions,
   GenerateOutcome,
   GenerateSuccess,
   ModelId,
+  RefineOptions,
   VariantReport,
 } from "./generate.js";
+export {
+  clearSession,
+  readSession,
+  sessionFilePath,
+  writeSession,
+} from "./session.js";
+export type { SessionRecord } from "./session.js";
 export { formatReport, validateVariant } from "./validate.js";
 export type { Severity, ValidationIssue, ValidationReport } from "./validate.js";
 export { inferComponentName } from "./name.js";

@@ -4,6 +4,7 @@ import {
   generate,
   inferComponentName,
   loadConfig,
+  writeSession,
   writeVariant,
   type GenerationResult,
   type ModelId,
@@ -13,13 +14,57 @@ import {
 import { getStatus, materializeVariants, startDaemon } from "@myui/preview";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
+import { spawn } from "node:child_process";
 import pc from "picocolors";
+
+function runInstall(
+  pm: string,
+  deps: readonly string[],
+  cwd: string,
+): Promise<void> {
+  return new Promise((resolveProm) => {
+    const spinner = p.spinner();
+    spinner.start(`${pm} add ${deps.join(" ")}`);
+    const child = spawn(pm, ["add", ...deps], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (b: Buffer) => {
+      stderr += b.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        spinner.stop(pc.green(`✓ Installed ${deps.length} dependency(ies)`));
+      } else {
+        spinner.stop(pc.red(`✗ ${pm} add exited ${code}`));
+        if (stderr.trim()) p.note(stderr.trim().slice(0, 500), pc.red("stderr"));
+      }
+      resolveProm();
+    });
+    child.on("error", (err) => {
+      spinner.stop(pc.red(`✗ ${err.message}`));
+      resolveProm();
+    });
+  });
+}
 
 interface GenerateCliOptions {
   readonly variants?: string;
   readonly model?: string;
   readonly out?: string;
   readonly mock?: boolean;
+  readonly autoInstall?: boolean;
+  readonly figma?: string;
+}
+
+function buildFigmaInstruction(url: string): string {
+  return [
+    ``,
+    `**Design reference (Figma):** ${url}`,
+    ``,
+    `Use the Figma MCP tools (mcp__claude_ai_Figma__get_design_context with the fileKey + nodeId parsed from the URL) to read the design before emitting variants. Mirror layout, spacing, typography, and color intent from the design. Do not invent UI not present in the design unless the user prompt asks for it.`,
+  ].join("\n");
 }
 
 function renderReports(reports: readonly VariantReport[]): void {
@@ -179,6 +224,8 @@ export function registerGenerate(program: Command): void {
     .option("-m, --model <id>", "sonnet | opus", "sonnet")
     .option("-o, --out <dir>", "Override components directory")
     .option("--mock", "Use local mock variants (no Claude API call)")
+    .option("--auto-install", "Run package manager install for new dependencies")
+    .option("--figma <url>", "Use Figma node as design reference")
     .action(async (prompt: string, opts: GenerateCliOptions) => {
       const variantCount = parseVariantCount(opts.variants);
       const model = parseModel(opts.model);
@@ -211,13 +258,26 @@ export function registerGenerate(program: Command): void {
           `Generating ${variantCount} variant(s) with ${model}…`,
         );
 
+        const userPrompt = opts.figma
+          ? `${prompt}\n${buildFigmaInstruction(opts.figma)}`
+          : prompt;
+
         const outcome = await generate({
-          userPrompt: prompt,
+          userPrompt,
           context: ctx,
           variantCount,
           model,
           cwd,
           config,
+          ...(opts.figma
+            ? {
+                extraAllowedTools: [
+                  "mcp__claude_ai_Figma__get_design_context",
+                  "mcp__claude_ai_Figma__get_screenshot",
+                  "mcp__claude_ai_Figma__get_metadata",
+                ],
+              }
+            : {}),
         });
 
         if (!outcome.ok) {
@@ -296,11 +356,31 @@ export function registerGenerate(program: Command): void {
 
       p.note(written.relPath, "Wrote component");
 
+      if (sessionId && !sessionId.startsWith("mock-")) {
+        try {
+          await writeSession(cwd, {
+            sessionId,
+            componentName: name,
+            prompt,
+            scope: "component",
+            model,
+            variantCount,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          p.note(msg, pc.yellow("Failed to persist session"));
+        }
+      }
+
       if (result.dependencies.length > 0) {
-        p.note(
-          `${ctx.packageManager} add ${result.dependencies.join(" ")}`,
-          "Install dependencies",
-        );
+        if (opts.autoInstall) {
+          await runInstall(ctx.packageManager, result.dependencies, cwd);
+        } else {
+          p.note(
+            `${ctx.packageManager} add ${result.dependencies.join(" ")}`,
+            "Install dependencies",
+          );
+        }
       }
 
       p.outro(pc.dim(`session: ${sessionId}`));

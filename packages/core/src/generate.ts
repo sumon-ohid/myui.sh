@@ -31,6 +31,21 @@ export interface GenerateOptions {
   readonly maxTurns?: number;
   readonly maxRepairs?: number;
   readonly config?: MyUiConfig;
+  readonly extraAllowedTools?: readonly string[];
+}
+
+export interface RefineOptions {
+  readonly instruction: string;
+  readonly sessionId: string;
+  readonly context: ProjectContext;
+  readonly variantCount: 1 | 2 | 3;
+  readonly model?: ModelId;
+  readonly cwd?: string;
+  readonly maxTurns?: number;
+  readonly maxRepairs?: number;
+  readonly config?: MyUiConfig;
+  readonly previousPrompt?: string;
+  readonly extraAllowedTools?: readonly string[];
 }
 
 export interface VariantReport {
@@ -83,6 +98,7 @@ interface RunArgs {
   readonly maxTurns: number;
   readonly cwd: string | undefined;
   readonly resume: string | undefined;
+  readonly extraAllowedTools: readonly string[];
 }
 
 interface RunResult {
@@ -124,7 +140,10 @@ async function runQuery(args: RunArgs): Promise<RunResult> {
       model: args.model,
       systemPrompt: args.systemPrompt,
       mcpServers: { "myui-output": outputServer },
-      allowedTools: ["mcp__myui-output__emit_variants"],
+      allowedTools: [
+        "mcp__myui-output__emit_variants",
+        ...args.extraAllowedTools,
+      ],
       permissionMode: "default",
       maxTurns: args.maxTurns,
       ...(args.cwd ? { cwd: args.cwd } : {}),
@@ -209,26 +228,22 @@ function buildRepairPrompt(
   return lines.join("\n");
 }
 
-export async function generate(
-  options: GenerateOptions,
-): Promise<GenerateOutcome> {
-  const scope = classifyScope(options.userPrompt);
-  const primitives = await scanShadcnPrimitives(options.context);
-  const config = options.config ?? defaultConfig();
-  const model = options.model ?? "claude-sonnet-4-6";
-  const maxTurns = options.maxTurns ?? 4;
-  const maxRepairs = options.maxRepairs ?? 2;
+interface LoopArgs {
+  readonly systemPrompt: string;
+  readonly initialPrompt: string;
+  readonly resume: string | undefined;
+  readonly model: ModelId;
+  readonly maxTurns: number;
+  readonly maxRepairs: number;
+  readonly cwd: string | undefined;
+  readonly scope: ScopeHint;
+  readonly primitives: readonly ShadcnPrimitive[];
+  readonly config: MyUiConfig;
+  readonly typescript: boolean;
+  readonly extraAllowedTools: readonly string[];
+}
 
-  const promptArgs = {
-    userPrompt: options.userPrompt,
-    context: options.context,
-    variantCount: options.variantCount,
-    scope,
-    primitives,
-  };
-  const systemPrompt = buildSystemPrompt(promptArgs);
-  const initialPrompt = buildUserPrompt(promptArgs);
-
+async function runWithRepairLoop(args: LoopArgs): Promise<GenerateOutcome> {
   let totalCost = 0;
   let totalIn = 0;
   let totalOut = 0;
@@ -237,19 +252,20 @@ export async function generate(
   let lastReports: VariantReport[] = [];
   let repairsUsed = 0;
 
-  let nextPrompt: string = initialPrompt;
-  let resume: string | undefined;
+  let nextPrompt: string = args.initialPrompt;
+  let resume: string | undefined = args.resume;
 
-  for (let attempt = 0; attempt <= maxRepairs; attempt++) {
+  for (let attempt = 0; attempt <= args.maxRepairs; attempt++) {
     let run: RunResult;
     try {
       run = await runQuery({
         prompt: nextPrompt,
-        systemPrompt,
-        model,
-        maxTurns,
-        cwd: options.cwd,
+        systemPrompt: args.systemPrompt,
+        model: args.model,
+        maxTurns: args.maxTurns,
+        cwd: args.cwd,
         resume,
+        extraAllowedTools: args.extraAllowedTools,
       });
     } catch (cause) {
       return {
@@ -278,18 +294,18 @@ export async function generate(
     lastResult = parsed;
     lastReports = validateAll(
       parsed,
-      config,
-      primitives,
-      options.context.typescript,
+      args.config,
+      args.primitives,
+      args.typescript,
     );
 
     const failing = lastReports.filter((r) => !r.report.ok);
     if (failing.length === 0) break;
 
-    if (attempt === maxRepairs) break;
+    if (attempt === args.maxRepairs) break;
 
     repairsUsed += 1;
-    nextPrompt = buildRepairPrompt(lastReports, scope);
+    nextPrompt = buildRepairPrompt(lastReports, args.scope);
     resume = sessionId;
   }
 
@@ -327,8 +343,89 @@ export async function generate(
     costUsd: totalCost,
     inputTokens: totalIn,
     outputTokens: totalOut,
-    scope: scope.scope,
+    scope: args.scope.scope,
     reports: lastReports,
     repairsUsed,
   };
 }
+
+export async function generate(
+  options: GenerateOptions,
+): Promise<GenerateOutcome> {
+  const scope = classifyScope(options.userPrompt);
+  const primitives = await scanShadcnPrimitives(options.context);
+  const config = options.config ?? defaultConfig();
+  const model = options.model ?? "claude-sonnet-4-6";
+  const maxTurns = options.maxTurns ?? 4;
+  const maxRepairs = options.maxRepairs ?? 2;
+
+  const promptArgs = {
+    userPrompt: options.userPrompt,
+    context: options.context,
+    variantCount: options.variantCount,
+    scope,
+    primitives,
+  };
+  const systemPrompt = buildSystemPrompt(promptArgs);
+  const initialPrompt = buildUserPrompt(promptArgs);
+
+  return runWithRepairLoop({
+    systemPrompt,
+    initialPrompt,
+    resume: undefined,
+    model,
+    maxTurns,
+    maxRepairs,
+    cwd: options.cwd,
+    scope,
+    primitives,
+    config,
+    typescript: options.context.typescript,
+    extraAllowedTools: options.extraAllowedTools ?? [],
+  });
+}
+
+export async function refine(
+  options: RefineOptions,
+): Promise<GenerateOutcome> {
+  const scopeSource = options.previousPrompt ?? options.instruction;
+  const scope = classifyScope(scopeSource);
+  const primitives = await scanShadcnPrimitives(options.context);
+  const config = options.config ?? defaultConfig();
+  const model = options.model ?? "claude-sonnet-4-6";
+  const maxTurns = options.maxTurns ?? 4;
+  const maxRepairs = options.maxRepairs ?? 2;
+
+  const promptArgs = {
+    userPrompt: scopeSource,
+    context: options.context,
+    variantCount: options.variantCount,
+    scope,
+    primitives,
+  };
+  const systemPrompt = buildSystemPrompt(promptArgs);
+
+  const refinePrompt = [
+    `Refine the previous \`emit_variants\` output based on this instruction:`,
+    ``,
+    options.instruction.trim(),
+    ``,
+    `Keep variant ids stable. Re-emit ALL ${options.variantCount} variant(s) (modified or not) via \`emit_variants\`. Stay within scope (${scope.scope}, ≤${scope.lineBudget} lines).`,
+  ].join("\n");
+
+  return runWithRepairLoop({
+    systemPrompt,
+    initialPrompt: refinePrompt,
+    resume: options.sessionId,
+    model,
+    maxTurns,
+    maxRepairs,
+    cwd: options.cwd,
+    scope,
+    primitives,
+    config,
+    typescript: options.context.typescript,
+    extraAllowedTools: options.extraAllowedTools ?? [],
+  });
+}
+
