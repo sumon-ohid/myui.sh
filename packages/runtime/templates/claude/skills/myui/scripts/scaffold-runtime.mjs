@@ -10,7 +10,9 @@ import { fileURLToPath } from "node:url";
 const root = resolve(process.argv[2] ?? ".");
 const report = { root, steps: [], ok: true };
 const SKILL_DIR = dirname(fileURLToPath(import.meta.url));
-const RUNTIME_PKG = resolve(SKILL_DIR, "../../../packages/runtime");
+// SKILL_DIR = <runtime>/templates/claude/skills/myui/scripts
+// Up 5 = <runtime>
+const RUNTIME_PKG = resolve(SKILL_DIR, "../../../../..");
 
 function step(name, status, detail) {
   report.steps.push({ name, status, detail });
@@ -303,6 +305,35 @@ if (framework === "nextjs" || framework === "nextjs-src") {
   }
 } else {
   step("api-route", "skip", `not applicable for ${framework}`);
+}
+
+const referencesDest = join(root, "REFERENCES.md");
+if (!existsSync(referencesDest)) {
+  const referencesCandidates = [
+    join(RUNTIME_PKG, "templates", "REFERENCES.md"),
+    join(root, "node_modules", "@myui-sh", "runtime", "templates", "REFERENCES.md"),
+  ];
+  const referencesSrc = referencesCandidates.find((p) => existsSync(p));
+  if (referencesSrc) {
+    copyFileSync(referencesSrc, referencesDest);
+    step("REFERENCES.md", "created", relative(root, referencesDest));
+  } else {
+    step("REFERENCES.md", "warn", "template not found - skipped");
+  }
+} else {
+  step("REFERENCES.md", "skip", "exists");
+}
+
+const inspoDirPath = join(myuiDir, "inspo");
+if (!existsSync(inspoDirPath)) {
+  mkdirSync(inspoDirPath, { recursive: true });
+  writeFileSync(
+    join(inspoDirPath, ".gitkeep"),
+    "# Drop screenshots, notes, or .md files here. Preflight scans this folder.\n",
+  );
+  step(".myui/inspo", "created", relative(root, inspoDirPath));
+} else {
+  step(".myui/inspo", "skip", "exists");
 }
 
 const giPath = join(root, ".gitignore");
