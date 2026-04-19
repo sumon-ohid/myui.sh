@@ -5,6 +5,13 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const FORCE_UPDATE_FILES = new Set([
+  "commands/myui.md",
+  "skills/myui/SKILL.md",
+  "skills/myui/scripts/scaffold-runtime.mjs",
+  "skills/myui/scripts/validate.mjs",
+]);
+
 async function exists(path) {
   try {
     await stat(path);
@@ -14,27 +21,35 @@ async function exists(path) {
   }
 }
 
-async function copyTree(srcDir, dstDir, counts) {
+async function copyTree(srcDir, dstDir, counts, relBase = "") {
   await mkdir(dstDir, { recursive: true });
   const entries = await readdir(srcDir, { withFileTypes: true });
 
   for (const entry of entries) {
+    const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
     const srcPath = resolve(srcDir, entry.name);
     const dstPath = resolve(dstDir, entry.name);
 
     if (entry.isDirectory()) {
-      await copyTree(srcPath, dstPath, counts);
+      await copyTree(srcPath, dstPath, counts, relPath);
       continue;
     }
 
-    if (await exists(dstPath)) {
+    const alreadyExists = await exists(dstPath);
+    const shouldForceUpdate = FORCE_UPDATE_FILES.has(relPath);
+
+    if (alreadyExists && !shouldForceUpdate) {
       counts.skipped += 1;
       continue;
     }
 
     await mkdir(dirname(dstPath), { recursive: true });
     await copyFile(srcPath, dstPath);
-    counts.created += 1;
+    if (alreadyExists) {
+      counts.updated += 1;
+    } else {
+      counts.created += 1;
+    }
   }
 }
 
@@ -57,12 +72,12 @@ async function main() {
     return;
   }
 
-  const counts = { created: 0, skipped: 0 };
+  const counts = { created: 0, updated: 0, skipped: 0 };
   await copyTree(templateRoot, claudeRoot, counts);
 
-  if (counts.created > 0) {
+  if (counts.created > 0 || counts.updated > 0) {
     process.stdout.write(
-      `[myui] Installed Claude templates in ${claudeRoot} (${counts.created} created, ${counts.skipped} existing).\n`,
+      `[myui] Installed Claude templates in ${claudeRoot} (${counts.created} created, ${counts.updated} updated, ${counts.skipped} existing).\n`,
     );
   }
 } 

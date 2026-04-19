@@ -150,23 +150,53 @@ const indexPath = join(variantsDir, "_index.ts");
 if (!existsSync(indexPath)) {
   writeFileSync(
     indexPath,
-    `// Auto-maintained by the myui skill. Do not edit by hand.\nimport { registerSlots } from "@myui/runtime";\n\nregisterSlots({\n  // "slot-id": () => import("./slot-id/manifest.js"),\n});\n`,
+    `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { useEffect } from "react";\nimport { registerSlots, type SlotIndex } from "@myui/runtime";\n\nconst SLOT_LOADERS: SlotIndex = {\n  // "slot-id": () => import("./slot-id/manifest.js"),\n};\n\nexport function MyuiSlotBootstrap() {\n  useEffect(() => {\n    registerSlots(SLOT_LOADERS);\n  }, []);\n\n  return null;\n}\n`,
   );
   step("_index.ts", "created", indexPath);
 } else {
-  step("_index.ts", "skip", "exists");
+  const existing = readFileSync(indexPath, "utf8");
+  if (!existing.includes("MyuiSlotBootstrap")) {
+    const legacyMatch = existing.match(/registerSlots\(\s*(\{[\s\S]*?\})\s*\);?/m);
+    const slotsObject = legacyMatch?.[1] ?? `{
+  // "slot-id": () => import("./slot-id/manifest.js"),
+}`;
+    writeFileSync(
+      indexPath,
+      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { useEffect } from "react";\nimport { registerSlots, type SlotIndex } from "@myui/runtime";\n\nconst SLOT_LOADERS: SlotIndex = ${slotsObject};\n\nexport function MyuiSlotBootstrap() {\n  useEffect(() => {\n    registerSlots(SLOT_LOADERS);\n  }, []);\n\n  return null;\n}\n`,
+    );
+    step("_index.ts", "migrated", "converted legacy server-side registerSlots");
+  } else {
+    step("_index.ts", "skip", "exists");
+  }
 }
 
 if (layoutPath) {
   let src = readFileSync(layoutPath, "utf8");
-  if (!src.includes(".myui-variants/_index")) {
-    const importLine = `import "${aliasPath}/_index";\n`;
+  let changed = false;
+
+  if (!src.includes("MyuiSlotBootstrap")) {
+    const importLine = `import { MyuiSlotBootstrap } from "${aliasPath}/_index";\n`;
     const lastImport = src.match(/^(import[^\n]*\n)+/m);
     src = lastImport
       ? src.replace(lastImport[0], lastImport[0] + importLine)
       : importLine + src;
+    changed = true;
+  }
+
+  if (!src.includes("<MyuiSlotBootstrap")) {
+    if (src.includes("<MyuiOverlay />")) {
+      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiSlotBootstrap />\n$1<MyuiOverlay />");
+    } else if (src.includes("</body>")) {
+      src = src.replace(/(\s*)<\/body>/, "$1  <MyuiSlotBootstrap />$1</body>");
+    } else {
+      step("layout-slot-bootstrap", "warn", "no </body> - add <MyuiSlotBootstrap /> manually");
+    }
+    changed = true;
+  }
+
+  if (changed) {
     writeFileSync(layoutPath, src);
-    step("layout-index-import", "added", `${aliasPath}/_index`);
+    step("layout-slot-bootstrap", "added", "MyuiSlotBootstrap in layout");
   }
 }
 

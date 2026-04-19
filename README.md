@@ -47,3 +47,17 @@ node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
 
 ## usage 
 /myui polish the hero section in app/Home/hero-section.tsx
+
+## Troubleshooting
+
+If Next.js throws:
+Attempted to call registerSlots() from the server
+
+Then your scaffolded variant index is from an older script. Re-run scaffold after updating runtime:
+
+```bash
+pnpm add @myui/runtime@latest
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
+```
+
+Expected fix: `app/.myui-variants/_index.ts` becomes a client bootstrap component (`MyuiSlotBootstrap`) instead of server-side `registerSlots(...)` execution at module top level.
