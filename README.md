@@ -27,3 +27,14 @@ When your Claude quota is exhausted, you can still test the full generate comman
 ```bash
 pnpm --filter @myui/cli dev generate "pricing card" --variants 2 --mock
 ```
+
+# How to use myui.sh
+
+## add this to package.json
+    "@myui/runtime": "file:/Users/sumon/MAIN_PROJECTS/myui.sh/packages/runtime"
+
+## then run this
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
+
+## usage 
+/myui polish the hero section in app/Home/hero-section.tsx
