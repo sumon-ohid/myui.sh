@@ -3,7 +3,7 @@
 // Usage: node validate.mjs <project-root> <slot-id>
 // Output: JSON to stdout. Exit 0 always (even with errors). Caller inspects ok.
 
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const ALLOWED_PACKAGES = new Set([
@@ -152,19 +152,62 @@ function validateOne(filename, code) {
   return { filename, ok, issues };
 }
 
+async function readJson(p) {
+  try {
+    return JSON.parse(await readFile(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+async function registerSlot(projectRoot, slotId, slotFile) {
+  const slotsPath = resolve(projectRoot, ".myui", "slots.json");
+  const current = (await readJson(slotsPath)) ?? { slots: {} };
+  const slots = current.slots && typeof current.slots === "object" ? current.slots : {};
+  slots[slotId] = { file: slotFile };
+  await writeFile(slotsPath, JSON.stringify({ slots }, null, 2) + "\n", "utf8");
+}
+
+async function resolveVariantsDir(projectRoot) {
+  const cfg = await readJson(resolve(projectRoot, ".myui", "config.json"));
+  if (cfg?.variantsDir) return resolve(projectRoot, cfg.variantsDir);
+  const candidates = [
+    resolve(projectRoot, "app", "myui-variants"),
+    resolve(projectRoot, "src", "myui-variants"),
+    resolve(projectRoot, "src", "app", "myui-variants"),
+  ];
+  for (const c of candidates) {
+    try {
+      const s = await stat(c);
+      if (s.isDirectory()) return c;
+    } catch {}
+  }
+  return candidates[0];
+}
+
 async function main() {
-  const [, , projectRoot, slotId] = process.argv;
+  const args = process.argv.slice(2);
+  const projectRoot = args[0];
+  const slotId = args[1];
+  let slotFile;
+  for (let i = 2; i < args.length; i++) {
+    if (args[i] === "--file" && args[i + 1]) {
+      slotFile = args[i + 1];
+      i++;
+    }
+  }
   if (!projectRoot || !slotId) {
     process.stdout.write(
       JSON.stringify({
         ok: false,
-        error: "Usage: validate.mjs <project-root> <slot-id>",
+        error: "Usage: validate.mjs <project-root> <slot-id> [--file <relative-path-to-wrapped-file>]",
       }),
     );
     process.exit(0);
   }
 
-  const slotDir = resolve(projectRoot, "src", "myui-variants", slotId);
+  const variantsRoot = await resolveVariantsDir(projectRoot);
+  const slotDir = resolve(variantsRoot, slotId);
   let entries;
   try {
     const s = await stat(slotDir);
@@ -201,7 +244,20 @@ async function main() {
   }
 
   const ok = reports.every((r) => r.ok);
-  process.stdout.write(JSON.stringify({ ok, slotId, reports }, null, 2));
+
+  let registered = false;
+  let registerError;
+  if (ok && slotFile) {
+    try {
+      await registerSlot(projectRoot, slotId, slotFile);
+      registered = true;
+    } catch (err) {
+      registerError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  process.stdout.write(
+    JSON.stringify({ ok, slotId, reports, registered, registerError }, null, 2));
   process.exit(0);
 }
 

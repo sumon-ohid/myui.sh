@@ -25,11 +25,14 @@ This wires runtime overlay and creates generated variant folders.
 ## Variant workflow
 
 1. Wrap target region with MyuiSlot id.
-2. Write Variant1..VariantN files under src/myui-variants/<slot-id>/.
-3. Update src/myui-variants/_index.ts with registerSlots import mapping.
-4. Validate variants:
-   node ~/.claude/skills/myui/scripts/validate.mjs <project-root> <slot-id>
-5. If validation fails, repair only failing variants and revalidate.
+2. Write Variant1..VariantN files under <variantsDir>/<slot-id>/ (variantsDir from .myui/config.json; default app/myui-variants or src/myui-variants).
+3. Write <variantsDir>/<slot-id>/manifest.ts re-exporting Variant1..VariantN as default.
+4. Update <variantsDir>/_index.ts SLOT_LOADERS with: "<slot-id>": () => import("./<slot-id>/manifest").
+5. Update .myui/slots.json — MUST add entry { "<slot-id>": { "file": "<path-to-wrapped-file-relative-to-project-root>" } }. Without this, /api/myui/apply returns 404. Never leave slots.json as { "slots": {} } after wrapping a slot.
+6. Validate variants AND register slot (single command):
+   node ~/.claude/skills/myui/scripts/validate.mjs <project-root> <slot-id> --file <relative-path-to-wrapped-file>
+   The --file flag writes the slot entry to .myui/slots.json. Required for /api/myui/apply to work. Always pass it.
+7. If validation fails, repair only failing variants and rerun the same command. Registration only occurs when ok=true.
 
 ## Rules
 
