@@ -153,7 +153,7 @@ if (!layoutPath) {
     changed = true;
   }
 
-  if (!src.includes("MyuiOverlay")) {
+  if (!src.includes("<MyuiOverlay")) {
     if (src.includes("</MyuiRegistryProvider>")) {
       src = src.replace(/(\s*)<\/MyuiRegistryProvider>/, "$1  <MyuiOverlay />$1</MyuiRegistryProvider>");
     } else if (src.includes("</body>")) {

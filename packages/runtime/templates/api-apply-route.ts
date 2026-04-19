@@ -142,10 +142,67 @@ function extractReturnJsx(variantSrc: string): string | null {
   const fnRe = /export\s+default\s+function\s+\w+\s*\([^)]*\)\s*\{/;
   const match = fnRe.exec(variantSrc);
   if (!match) return null;
+  
   let i = match.index + match[0].length;
-  const retIdx = variantSrc.indexOf("return", i);
-  if (retIdx === -1) return null;
-  let j = retIdx + "return".length;
+  let depth = 1;
+  let inString: string | null = null;
+  let inComment = false;
+  let inMultiComment = false;
+
+  let topLevelReturnIdx = -1;
+
+  for (let k = i; k < variantSrc.length; k++) {
+    const c = variantSrc[k];
+    const prev = variantSrc[k - 1] || "";
+    const next = variantSrc[k + 1] || "";
+
+    if (inString) {
+      if (c === inString && prev !== "\\") inString = null;
+      continue;
+    }
+    if (inComment) {
+      if (c === "\n") inComment = false;
+      continue;
+    }
+    if (inMultiComment) {
+      if (c === "/" && prev === "*") inMultiComment = false;
+      continue;
+    }
+
+    if (c === '"' || c === "'" || c === "`") {
+      inString = c;
+      continue;
+    }
+    if (c === "/" && next === "/") {
+      inComment = true;
+      continue;
+    }
+    if (c === "/" && next === "*") {
+      inMultiComment = true;
+      continue;
+    }
+
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) break;
+    }
+
+    if (depth === 1) {
+      if (variantSrc.startsWith("return", k)) {
+        const after = variantSrc[k + 6];
+        const before = variantSrc[k - 1];
+        if ((!after || /[\s\(\<]/.test(after)) && (!before || /[\s\}\;]/.test(before))) {
+          topLevelReturnIdx = k;
+          break;
+        }
+      }
+    }
+  }
+
+  if (topLevelReturnIdx === -1) return null;
+
+  let j = topLevelReturnIdx + "return".length;
   while (j < variantSrc.length && /\s/.test(variantSrc[j])) j++;
 
   const open = variantSrc[j];
