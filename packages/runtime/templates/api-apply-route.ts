@@ -4,10 +4,22 @@ import { NextResponse } from "next/server";
 
 const ROOT = process.cwd();
 
+function getVariantsDir(): string {
+  try {
+    const config = JSON.parse(readFileSync(join(ROOT, ".myui", "config.json"), "utf8"));
+    if (config.variantsDir) return join(ROOT, config.variantsDir);
+  } catch {
+    // fall through to default
+  }
+  return join(ROOT, "app", ".myui-variants");
+}
+
+const VARIANTS_DIR = getVariantsDir();
+
 function stripMyuiSlot(src: string): string {
   let out = src;
   out = out.replace(/^import\s+\{[^}]*MyuiSlot[^}]*\}\s+from\s+["']@myui\/runtime["'];\n?/m, "");
-  out = out.replace(/^import\s+["']@\/\.myui-variants\/_index["'];\n?/m, "");
+  out = out.replace(/^import\s+["'][^"']*\.myui-variants\/_index["'];\n?/m, "");
   out = out.replace(/<MyuiSlot[^>]*>\n?([\s\S]*?)<\/MyuiSlot>/g, (_, inner) =>
     inner.replace(/^\n/, "").replace(/\n?$/, ""),
   );
@@ -39,7 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `slot "${slotId}" not found` }, { status: 404 });
   }
 
-  const variantPath = join(ROOT, ".myui-variants", slotId, `Variant${variantIndex}.tsx`);
+  const variantPath = join(VARIANTS_DIR, slotId, `Variant${variantIndex}.tsx`);
   let variantSrc: string;
   try {
     variantSrc = readFileSync(variantPath, "utf8");
@@ -68,15 +80,12 @@ export async function POST(req: Request) {
 
   writeFileSync(originalPath, stripMyuiSlot(newSrc));
 
-  // Remove variants dir
-  rmSync(join(ROOT, ".myui-variants", slotId), { recursive: true, force: true });
+  rmSync(join(VARIANTS_DIR, slotId), { recursive: true, force: true });
 
-  // Remove from slots.json
   delete slotsJson.slots[slotId];
   writeFileSync(slotsPath, JSON.stringify(slotsJson, null, 2) + "\n");
 
-  // Remove entry from _index.ts
-  const indexPath = join(ROOT, ".myui-variants", "_index.ts");
+  const indexPath = join(VARIANTS_DIR, "_index.ts");
   try {
     const idx = readFileSync(indexPath, "utf8");
     const cleaned = idx

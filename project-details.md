@@ -293,3 +293,16 @@ Sessions GC after 7 days unless pinned.
 - Non-Tailwind styling (CSS Modules, styled-components, etc.)
 
 Revisit post-v1 based on demand.
+
+
+# Improvements
+
+--- before registering the slog in _index.ts should creat the variants
+first create variants then add the slot in  _index.ts, like this we can skip the "Module not found: Can't resolve './Variant1'". error. 
+
+-- Need to improve the floating tab ui/ux
+-- Component ui/ux in the preview mode little weird, padding and spacings and others, but after applying it looks normal
+
+-- Everytime claude add back the previous created variants thats applied. 
+
+-- move the .myui dir inside project src
