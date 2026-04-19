@@ -229,23 +229,33 @@ if (layoutPath) {
   let changed = false;
 
   if (!src.includes("MyuiSlotBootstrap")) {
-    const importLine = `import { MyuiSlotBootstrap } from "${aliasPath}/_index";\n`;
+    const importLine1 = `import "${aliasPath}/_index";\n`;
+    const importLine2 = `import { MyuiSlotBootstrap } from "${aliasPath}/_index";\n`;
     const lastImport = src.match(/^(import[^\n]*\n)+/m);
-    src = lastImport
-      ? src.replace(lastImport[0], lastImport[0] + importLine)
-      : importLine + src;
+    
+    if (lastImport) {
+        if (!src.includes(importLine1)) {
+            src = src.replace(lastImport[0], lastImport[0] + importLine1);
+        }
+        if (!src.includes(importLine2)) {
+            src = src.replace(lastImport[0], lastImport[0] + importLine2);
+        }
+    } else {
+        src = importLine1 + importLine2 + src;
+    }
     changed = true;
   }
 
   if (!src.includes("<MyuiSlotBootstrap")) {
     if (src.includes("<MyuiOverlay />")) {
-      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiSlotBootstrap />\n$1<MyuiOverlay />");
+      src = src.replace(/(\s*)<MyuiOverlay\s*\/>/, "$1<MyuiSlotBootstrap />$1<MyuiOverlay />");
+      changed = true;
     } else if (src.includes("</body>")) {
       src = src.replace(/(\s*)<\/body>/, "$1  <MyuiSlotBootstrap />$1</body>");
+      changed = true;
     } else {
       step("layout-slot-bootstrap", "warn", "no </body> - add <MyuiSlotBootstrap /> manually");
     }
-    changed = true;
   }
 
   if (changed) {
