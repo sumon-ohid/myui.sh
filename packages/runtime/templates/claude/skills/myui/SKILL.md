@@ -1,6 +1,6 @@
 ---
 name: myui
-description: Generate, polish, or refine UI components in the user's project with in-app variant preview via @myui/runtime.
+description: Generate, polish, or refine UI components in the user's project with in-app variant preview via @myui-sh/runtime.
 ---
 
 # myui skill
@@ -17,7 +17,7 @@ Gather before writing variants:
 
 ## One-time setup
 
-If @myui/runtime is missing, run:
+If @myui-sh/runtime is missing, run:
 node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs <project-root>
 
 This wires runtime overlay and creates generated variant folders.

@@ -261,7 +261,7 @@ Sessions GC after 7 days unless pinned.
 - `myui doctor`
 - Telemetry/cost reporting
 - Docs site
-- npm publish `myui` (or `@myui/cli`)
+- npm publish `myui` (or `@myui-sh/cli`)
 - **Deliverable:** v1.0.0
 
 ---

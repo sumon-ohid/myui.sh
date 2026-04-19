@@ -1,4 +1,4 @@
-import { getStatus, startDaemon, stopDaemon } from "@myui/preview";
+import { getStatus, startDaemon, stopDaemon } from "@myui-sh/preview";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";

@@ -14,7 +14,7 @@ const ALLOWED_PACKAGES = new Set([
   "clsx",
   "tailwind-merge",
   "class-variance-authority",
-  "@myui/runtime",
+  "@myui-sh/runtime",
 ]);
 
 const FORBIDDEN_PACKAGES = [
@@ -184,7 +184,7 @@ async function updateIndex(variantsRoot, slotId) {
     src = await readFile(indexPath, "utf8");
   } catch {
     src =
-      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "@myui/runtime";\n\nconst SLOT_LOADERS: SlotIndex = {\n};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`;
+      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "@myui-sh/runtime";\n\nconst SLOT_LOADERS: SlotIndex = {\n};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`;
   }
 
   const entry = `  "${slotId}": () => import("./${slotId}/manifest"),`;

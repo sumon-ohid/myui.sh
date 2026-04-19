@@ -1,4 +1,4 @@
-import { detectProjectContext } from "@myui/core";
+import { detectProjectContext } from "@myui-sh/core";
 import type { Command } from "commander";
 import { writeFile, mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";

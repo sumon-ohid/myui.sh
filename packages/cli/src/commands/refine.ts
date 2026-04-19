@@ -10,8 +10,8 @@ import {
   type ModelId,
   type Variant,
   type VariantReport,
-} from "@myui/core";
-import { getStatus, materializeVariants, startDaemon } from "@myui/preview";
+} from "@myui-sh/core";
+import { getStatus, materializeVariants, startDaemon } from "@myui-sh/preview";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";

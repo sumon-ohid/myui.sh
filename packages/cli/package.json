@@ -1,5 +1,5 @@
 {
-  "name": "@myui/cli",
+  "name": "@myui-sh/cli",
   "version": "0.0.0",
   "type": "module",
   "bin": {
@@ -13,8 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@myui/core": "workspace:*",
-    "@myui/preview": "workspace:*",
+    "@myui-sh/core": "workspace:*",
+    "@myui-sh/preview": "workspace:*",
     "@clack/prompts": "^0.9.0",
     "commander": "^12.1.0",
     "picocolors": "^1.1.1"

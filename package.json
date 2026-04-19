@@ -12,7 +12,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "dev": "pnpm --filter @myui/cli dev"
+    "dev": "pnpm --filter @myui-sh/cli dev"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

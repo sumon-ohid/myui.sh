@@ -1,74 +1,65 @@
 # myui.sh
 
-## Phase 3 Smoke Test
+`myui.sh` is an interactive frontend development tool for generating, polishing, and injecting UI components via local AI (Claude or GitHub Copilot) directly into your running React / Next.js application.
 
-Run a quick browser preview with exactly 2 local variants:
+## Installation
 
-```bash
-pnpm --filter @myui/cli dev smoke
-```
-
-If you do not want auto-open behavior:
+When developing in your Next.js application, install the runtime package. This will automatically bootstrap the necessary AI skill files in `~/.claude/` and `~/.copilot/`.
 
 ```bash
-pnpm --filter @myui/cli dev smoke --no-open
+npm install -D @myui-sh/runtime
+# or
+pnpm add -D @myui-sh/runtime
 ```
 
-Stop the preview daemon when done:
+*(You can set `MYUI_SKIP_SKILL_BOOTSTRAP=1` if you don't want the post-install script to copy the skills into your agent profiles).*
+
+## Automatic Project Scaffolding
+
+After adding the runtime, run the generated script to automatically configure your Next.js project. This will inject the `<MyuiRegistryProvider>`, `<MyuiOverlay>`, and `<MyuiSlotBootstrap />` into your `layout.tsx`, and create a `.myui/` configuration directory.
+
+**For Claude Desktop Users:**
+```bash
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
+```
+
+**For GitHub Copilot (VS Code) Users:**
+```bash
+node ~/.copilot/skills/myui/scripts/scaffold-runtime.mjs .
+```
+
+## Styling / Tailwind Support
+
+The scaffold script automatically integrates with your `tailwind.config.ts`.
+**If you are using Tailwind v4 (CSS-only config):** Tailwind naturally ignores files listed in `.gitignore`. Our scaffold explicitly leaves `myui-variants` *out* of your `.gitignore` to ensure Tailwind v4 scans the AI-generated variants instantly and provides correct CSS while previewing.
+
+If you don't see Tailwind styling in your interactive preview, ensure your `.gitignore` does not explicitly ignore your `app/myui-variants/` or `src/myui-variants/` folder!
+
+## Usage inside the Agent
+
+Once scaffolded, ask your AI (Claude Desktop or GitHub Copilot):
+
+- `generate a modern pricing table in app/components/prices.tsx with 3 variants`
+- `refine the hero section in app/page.tsx`
+- `/myui create a dashboard layout with a sidebar`
+
+The AI will generate variants and drop them into a temporary `./myui-variants/` stage. A floating dock will appear in your running frontend application allowing you to freely switch between the generated variants, instantly preview them, and **apply** your favorite one directly to your source code!
+
+## CLI Daemon & Troubleshooting
+
+We bundle a standalone `@myui-sh/cli` for advanced inspection, managing previews, and smoke testing the daemon.
 
 ```bash
-pnpm --filter @myui/cli dev daemon stop
+pnpm dlx @myui-sh/cli dev smoke
 ```
 
-## Test Generate Flow Without Claude
+### Common Errors
 
-When your Claude quota is exhausted, you can still test the full generate command flow (preview + selection + write) using local mock variants:
+> *Error: Attempted to call registerSlots() from the server*
+
+You are using an outdated variant bootstrap. Update to the latest `runtime` version and re-run the scaffold script:
 
 ```bash
-pnpm --filter @myui/cli dev generate "pricing card" --variants 2 --mock
+npm update @myui-sh/runtime@latest
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
 ```
-
-# How to use myui.sh
-
-## add this to package.json
-    "@myui/runtime": "file:/Users/sumon/MAIN_PROJECTS/myui.sh/packages/runtime"
-
-When @myui/runtime is installed, it auto-bootstraps skill files for both Claude and Copilot:
-
-Claude (~/.claude):
-- skills/myui/SKILL.md
-- skills/myui/scripts/scaffold-runtime.mjs
-- skills/myui/scripts/validate.mjs
-- commands/myui.md
-
-Copilot (~/.copilot):
-- skills/myui/SKILL.md
-- skills/myui/scripts/scaffold-runtime.mjs
-- skills/myui/scripts/validate.mjs
-
-To skip all bootstrap during install:
-MYUI_SKIP_SKILL_BOOTSTRAP=1 pnpm add @myui/runtime
-
-To skip only one target:
-MYUI_SKIP_CLAUDE_BOOTSTRAP=1 pnpm add @myui/runtime
-MYUI_SKIP_COPILOT_BOOTSTRAP=1 pnpm add @myui/runtime
-
-## then run this
-node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
-
-## usage 
-/myui polish the hero section in app/Home/hero-section.tsx
-
-## Troubleshooting
-
-If Next.js throws:
-Attempted to call registerSlots() from the server
-
-Then your scaffolded variant index is from an older script. Re-run scaffold after updating runtime:
-
-```bash
-pnpm add @myui/runtime@latest
-node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs /path/to/your/project
-```
-
-Expected fix: `app/myui-variants/_index.ts` becomes a client bootstrap component (`MyuiSlotBootstrap`) instead of server-side `registerSlots(...)` execution at module top level.

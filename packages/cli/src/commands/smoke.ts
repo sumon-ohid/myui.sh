@@ -1,4 +1,4 @@
-import { getStatus, materializeVariants, startDaemon } from "@myui/preview";
+import { getStatus, materializeVariants, startDaemon } from "@myui-sh/preview";
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
 import { spawn } from "node:child_process";
