@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { createRequire } from "node:module";
+import fs from "node:fs";
 
 const projectRoot = process.env.MYUI_PROJECT_ROOT;
 if (!projectRoot) {
@@ -17,8 +18,45 @@ const reactDomClientPath = requireFromHere.resolve("react-dom/client");
 const jsxRuntimePath = requireFromHere.resolve("react/jsx-runtime");
 const jsxDevRuntimePath = requireFromHere.resolve("react/jsx-dev-runtime");
 
+// Auto-detect global CSS
+const cssCandidates = [
+  "src/app/globals.css",
+  "app/globals.css",
+  "src/index.css",
+  "src/main.css",
+  "src/globals.css",
+  "styles/globals.css",
+  "styles/index.css"
+];
+let globalCssPath = null;
+for (const cand of cssCandidates) {
+  const p = path.resolve(projectRoot, cand);
+  if (fs.existsSync(p)) {
+    globalCssPath = p;
+    break;
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  css: {
+    postcss: projectRoot, // Ensure Vite uses the PostCSS config from your Next.js root
+  },
+  plugins: [
+    react(),
+    {
+      name: "myui-global-css-injector",
+      transformIndexHtml(html) {
+        if (globalCssPath) {
+          const relativePath = `/@fs${globalCssPath}`;
+          return html.replace(
+            /<\/head>/,
+            `  <script type="module">import "${relativePath}";</script>\n  </head>`
+          );
+        }
+        return html;
+      },
+    },
+  ],
   root: previewRoot,
   resolve: {
     alias: [

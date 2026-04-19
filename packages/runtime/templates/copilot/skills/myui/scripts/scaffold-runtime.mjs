@@ -278,7 +278,7 @@ if (framework === "nextjs" || framework === "nextjs-src") {
 }
 
 const giPath = join(root, ".gitignore");
-const giEntries = [variantsDirRel, ".myui/"];
+const giEntries = [".myui/"]; // We purposely no longer gitignore variantsDirRel so Tailwind v4 scans it
 const giLines = existsSync(giPath) ? readFileSync(giPath, "utf8") : "";
 const missing = giEntries.filter((e) => !giLines.split("\n").some((l) => l.trim() === e));
 if (missing.length > 0) {
@@ -286,6 +286,40 @@ if (missing.length > 0) {
   step(".gitignore", "added", missing.join(", "));
 } else {
   step(".gitignore", "skip", "entries exist");
+}
+
+// Remove previously injected gitignore variant path if we put it there in old versions
+if (giLines.includes(variantsDirRel)) {
+  const cleaned = giLines.split("\n").filter(l => l.trim() !== variantsDirRel).join("\n");
+  writeFileSync(giPath, cleaned);
+  step(".gitignore", "cleaned", `removed ${variantsDirRel} rule for Tailwind v4 support`);
+}
+
+const tailwindCandidates = [
+  "tailwind.config.js",
+  "tailwind.config.ts",
+  "tailwind.config.mjs",
+  "tailwind.config.cjs"
+];
+const tailwindPath = tailwindCandidates.map(p => join(root, p)).find(p => existsSync(p));
+
+if (tailwindPath) {
+  const twConfig = readFileSync(tailwindPath, "utf8");
+  const globPattern = `./${variantsDirRel.replace(/\\/g, '/')}**/*.{js,ts,jsx,tsx,mdx}`;
+  if (!twConfig.includes(variantsDirRel) && !twConfig.includes(globPattern)) {
+    const contentRegex = /(content\s*:\s*\[)/;
+    if (contentRegex.test(twConfig)) {
+      const updated = twConfig.replace(contentRegex, `$1\n    "${globPattern}",`);
+      writeFileSync(tailwindPath, updated);
+      step("tailwind.config", "patched", `added ${globPattern} to content`);
+    } else {
+      step("tailwind.config", "warn", "could not find 'content: [' array to patch");
+    }
+  } else {
+    step("tailwind.config", "skip", "already configured");
+  }
+} else {
+  step("tailwind.config", "skip", "no config found");
 }
 
 console.log(JSON.stringify(report, null, 2));
