@@ -168,6 +168,44 @@ async function registerSlot(projectRoot, slotId, slotFile) {
   await writeFile(slotsPath, JSON.stringify({ slots }, null, 2) + "\n", "utf8");
 }
 
+async function writeManifest(slotDir, variantNumbers) {
+  const lines = [`"use client";`, ""];
+  for (const n of variantNumbers) {
+    lines.push(`export { default as Variant${n} } from "./Variant${n}";`);
+  }
+  lines.push("");
+  await writeFile(resolve(slotDir, "manifest.ts"), lines.join("\n"), "utf8");
+}
+
+async function updateIndex(variantsRoot, slotId) {
+  const indexPath = resolve(variantsRoot, "_index.ts");
+  let src;
+  try {
+    src = await readFile(indexPath, "utf8");
+  } catch {
+    src =
+      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "@myui/runtime";\n\nconst SLOT_LOADERS: SlotIndex = {\n};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`;
+  }
+
+  const entry = `  "${slotId}": () => import("./${slotId}/manifest"),`;
+  const slotRe = new RegExp(
+    `^\\s*["']${slotId}["']\\s*:\\s*\\(\\)\\s*=>\\s*import\\([^)]+\\),?\\s*$`,
+    "m",
+  );
+  if (slotRe.test(src)) {
+    src = src.replace(slotRe, entry);
+  } else {
+    const blockRe = /(const\s+SLOT_LOADERS\s*:\s*SlotIndex\s*=\s*\{)([\s\S]*?)(\n\};)/m;
+    const m = blockRe.exec(src);
+    if (!m) throw new Error("SLOT_LOADERS block not found in _index.ts");
+    const body = m[2].replace(/\s*\/\/[^\n]*$/gm, "").trimEnd();
+    const newBody = body.length ? `${body}\n${entry}` : `\n${entry}`;
+    src = src.replace(blockRe, `$1${newBody}$3`);
+  }
+
+  await writeFile(indexPath, src, "utf8");
+}
+
 async function resolveVariantsDir(projectRoot) {
   const cfg = await readJson(resolve(projectRoot, ".myui", "config.json"));
   if (cfg?.variantsDir) return resolve(projectRoot, cfg.variantsDir);
@@ -246,18 +284,40 @@ async function main() {
   const ok = reports.every((r) => r.ok);
 
   let registered = false;
-  let registerError;
-  if (ok && slotFile) {
+  let manifestWritten = false;
+  let indexUpdated = false;
+  const registrationErrors = [];
+  if (ok) {
+    const variantNumbers = reports.map((r) => r.variantId).sort((a, b) => a - b);
     try {
-      await registerSlot(projectRoot, slotId, slotFile);
-      registered = true;
+      await writeManifest(slotDir, variantNumbers);
+      manifestWritten = true;
     } catch (err) {
-      registerError = err instanceof Error ? err.message : String(err);
+      registrationErrors.push(`manifest: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    try {
+      await updateIndex(variantsRoot, slotId);
+      indexUpdated = true;
+    } catch (err) {
+      registrationErrors.push(`_index: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    if (slotFile) {
+      try {
+        await registerSlot(projectRoot, slotId, slotFile);
+        registered = true;
+      } catch (err) {
+        registrationErrors.push(`slots.json: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 
   process.stdout.write(
-    JSON.stringify({ ok, slotId, reports, registered, registerError }, null, 2));
+    JSON.stringify(
+      { ok, slotId, reports, registered, manifestWritten, indexUpdated, registrationErrors },
+      null,
+      2,
+    ),
+  );
   process.exit(0);
 }
 

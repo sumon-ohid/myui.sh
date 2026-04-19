@@ -26,12 +26,16 @@ This wires runtime overlay and creates generated variant folders.
 
 1. Wrap target region with MyuiSlot id.
 2. Write Variant1..VariantN files under <variantsDir>/<slot-id>/ (variantsDir from .myui/config.json; default app/myui-variants or src/myui-variants).
-3. Write <variantsDir>/<slot-id>/manifest.ts re-exporting Variant1..VariantN as default.
-4. Update <variantsDir>/_index.ts SLOT_LOADERS with: "<slot-id>": () => import("./<slot-id>/manifest").
-5. Validate variants AND register slot (single command):
+3. Run validate/register:
    node ~/.copilot/skills/myui/scripts/validate.mjs <project-root> <slot-id> --file <relative-path-to-wrapped-file>
-   The --file flag writes the slot entry to .myui/slots.json. Required for /api/myui/apply to work. Always pass it.
-6. If validation fails, repair only failing variants and rerun the same command. Registration only occurs when ok=true.
+
+   On ok=true the script auto-writes:
+   - <variantsDir>/<slot-id>/manifest.ts (Variant re-exports)
+   - <variantsDir>/_index.ts SLOT_LOADERS entry
+   - .myui/slots.json entry (when --file is passed — REQUIRED for /api/myui/apply)
+
+   Do NOT hand-edit manifest.ts, _index.ts, or slots.json. The script owns them.
+4. If validation fails, fix only failing variants and rerun the same command. Registration only occurs when ok=true.
 
 ## Rules
 
