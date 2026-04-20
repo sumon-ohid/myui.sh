@@ -4,7 +4,8 @@
 // Output: JSON to stdout. Exit 0 always (even with errors). Caller inspects ok.
 
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { existsSync } from "node:fs";
 
 const ALLOWED_PACKAGES = new Set([
   "react",
@@ -51,9 +52,10 @@ function extractImports(code) {
   return out;
 }
 
-function validateOne(filename, code) {
+function validateOne(filename, code, ctx = {}) {
   const issues = [];
   const lines = code.split("\n");
+  const { lucideIcons } = ctx;
 
   for (const { spec, line } of extractImports(code)) {
     if (isInternal(spec)) continue;
@@ -74,6 +76,29 @@ function validateOne(filename, code) {
         message: `Import of "${spec}" is not on the allowlist.`,
         line,
       });
+    }
+  }
+
+  // Named-export check for lucide-react against the project's installed inventory.
+  if (lucideIcons && lucideIcons.size > 0) {
+    const re = /import\s*\{([^}]+)\}\s*from\s*["']lucide-react["']/g;
+    let mm;
+    while ((mm = re.exec(code)) !== null) {
+      const ln = code.slice(0, mm.index).split("\n").length;
+      const names = mm[1]
+        .split(",")
+        .map((s) => s.replace(/\s+as\s+\w+/, "").trim())
+        .filter(Boolean);
+      for (const n of names) {
+        if (!lucideIcons.has(n)) {
+          issues.push({
+            rule: "invalid-lucide-icon",
+            severity: "error",
+            message: `"${n}" is not exported by the installed lucide-react. Check spelling or pick a different icon.`,
+            line: ln,
+          });
+        }
+      }
     }
   }
 
@@ -148,6 +173,191 @@ function validateOne(filename, code) {
     }
   }
 
+  // ------- Apply-safety + client-directive checks (Stage 1 guards) -------
+
+  const HOOK_RE = /\b(useState|useEffect|useReducer|useRef|useCallback|useMemo|useContext|useLayoutEffect|useTransition|useDeferredValue|useId|useSyncExternalStore|useInsertionEffect|useOptimistic|useActionState|useFormStatus|useFormState|useSWR|useQuery|useMutation|useInfiniteQuery|useAtom|useStore)\b/;
+  const CLIENT_LIB_IMPORTS = new Set(["lucide-react", "@phosphor-icons/react"]);
+  const EVENT_HANDLER_RE = /\bon(Click|Change|Submit|KeyDown|KeyUp|MouseEnter|MouseLeave|Focus|Blur|Input|Scroll|Toggle)\s*=\s*\{/;
+
+  const firstNonEmpty = lines.find((l) => l.trim().length > 0) ?? "";
+  const hasUseClient = /^\s*["']use client["']\s*;?\s*$/.test(firstNonEmpty);
+
+  const usesHooks = HOOK_RE.test(code);
+  const hasEventHandler = EVENT_HANDLER_RE.test(code);
+  const importsClientLib = [...extractImports(code)].some(({ spec }) =>
+    CLIENT_LIB_IMPORTS.has(packageName(spec)),
+  );
+  const needsClient = usesHooks || hasEventHandler || importsClientLib;
+
+  if (needsClient && !hasUseClient) {
+    const reason = usesHooks
+      ? "uses React hooks"
+      : hasEventHandler
+        ? "has event handlers"
+        : "imports a client-only library";
+    issues.push({
+      rule: "missing-use-client",
+      severity: "error",
+      message: `Variant ${reason} but is missing \"use client\" directive on line 1.`,
+      line: 1,
+    });
+  }
+
+  // Detect the exported component function and check its body for apply-safety.
+  const defaultFnRe =
+    /export\s+default\s+function\s+(\w+)\s*\(([^)]*)\)\s*(?::\s*[^\{]+)?\{/;
+  const defaultFnMatch = defaultFnRe.exec(code);
+  const namedDefaultRe = /export\s+default\s+(\w+)\s*;?\s*$/m;
+  const arrowDefaultRe =
+    /export\s+default\s+(?:\(?\s*\)?\s*=>|function\s*\()/;
+
+  if (!defaultFnMatch) {
+    if (arrowDefaultRe.test(code) || namedDefaultRe.test(code)) {
+      issues.push({
+        rule: "apply-unsupported-default-export",
+        severity: "error",
+        message:
+          "Use `export default function Variant<N>(...) { ... }`. Arrow-function or assigned default exports are not apply-safe.",
+        line: 1,
+      });
+    } else {
+      issues.push({
+        rule: "missing-default-export",
+        severity: "error",
+        message: "Variant must have `export default function Variant<N>(...) { ... }`.",
+        line: 1,
+      });
+    }
+  } else {
+    // Walk the function body with the same depth logic the apply-route uses.
+    const bodyStart = defaultFnMatch.index + defaultFnMatch[0].length;
+    let depth = 1;
+    let bodyEnd = -1;
+    let inString = null;
+    let inLine = false;
+    let inBlock = false;
+    for (let k = bodyStart; k < code.length; k++) {
+      const c = code[k];
+      const prev = code[k - 1] ?? "";
+      const next = code[k + 1] ?? "";
+      if (inString) {
+        if (c === inString && prev !== "\\") inString = null;
+        continue;
+      }
+      if (inLine) {
+        if (c === "\n") inLine = false;
+        continue;
+      }
+      if (inBlock) {
+        if (c === "/" && prev === "*") inBlock = false;
+        continue;
+      }
+      if (c === '"' || c === "'" || c === "`") { inString = c; continue; }
+      if (c === "/" && next === "/") { inLine = true; continue; }
+      if (c === "/" && next === "*") { inBlock = true; continue; }
+      if (c === "{") depth++;
+      else if (c === "}") {
+        depth--;
+        if (depth === 0) { bodyEnd = k; break; }
+      }
+    }
+
+    if (bodyEnd === -1) {
+      issues.push({
+        rule: "unclosed-component-body",
+        severity: "error",
+        message: "Component body braces unbalanced.",
+        line: lines.length,
+      });
+    } else {
+      const body = code.slice(bodyStart, bodyEnd);
+      const bodyStartLine = code.slice(0, bodyStart).split("\n").length;
+
+      // Early-return heuristic: a `return` at depth 1 that appears before a later `return`.
+      // Apply-route picks the first top-level `return` — if there are multiple, variant
+      // may be mis-applied depending on branch.
+      const topReturns = [];
+      {
+        let d = 0;
+        let s = null;
+        let lc = false;
+        let bc = false;
+        for (let k = 0; k < body.length; k++) {
+          const c = body[k];
+          const prev = body[k - 1] ?? "";
+          const next = body[k + 1] ?? "";
+          if (s) { if (c === s && prev !== "\\") s = null; continue; }
+          if (lc) { if (c === "\n") lc = false; continue; }
+          if (bc) { if (c === "/" && prev === "*") bc = false; continue; }
+          if (c === '"' || c === "'" || c === "`") { s = c; continue; }
+          if (c === "/" && next === "/") { lc = true; continue; }
+          if (c === "/" && next === "*") { bc = true; continue; }
+          if (c === "{") d++;
+          else if (c === "}") d--;
+          if (d === 0 && body.startsWith("return", k)) {
+            const after = body[k + 6] ?? "";
+            const before = body[k - 1] ?? "";
+            if ((!after || /[\s\(\<]/.test(after)) && (!before || /[\s\}\;]/.test(before))) {
+              topReturns.push(k);
+            }
+          }
+        }
+      }
+      if (topReturns.length > 1) {
+        const ln = bodyStartLine + body.slice(0, topReturns[0]).split("\n").length - 1;
+        issues.push({
+          rule: "apply-multiple-top-level-returns",
+          severity: "warning",
+          message:
+            `Multiple top-level returns (${topReturns.length}). Apply picks the first — move loading/error states into JSX (conditional rendering) so the single main return is always reached.`,
+          line: ln,
+        });
+      }
+
+      // Ternary return at top level: `return cond ? <A/> : <B/>` — apply-route
+      // currently grabs the parenthesized/JSX form starting at `return`; ternaries
+      // may truncate.
+      const ternaryReturn = /\breturn\s+[^(<;{}]+\?\s*</m.exec(body);
+      if (ternaryReturn) {
+        const ln = bodyStartLine + body.slice(0, ternaryReturn.index).split("\n").length - 1;
+        issues.push({
+          rule: "apply-ternary-return",
+          severity: "warning",
+          message:
+            "Top-level `return cond ? <A/> : <B/>` may not apply cleanly. Wrap both branches: `return (cond ? <A/> : <B/>)` or use `if (cond) return <A/>; return <B/>;`.",
+          line: ln,
+        });
+      }
+    }
+
+    // Top-level (module scope) declarations outside the component — apply currently
+    // drops these. Detect `const|let|function|type|interface` at column 0 that are
+    // NOT inside the default-export function.
+    const beforeFn = code.slice(0, defaultFnMatch.index);
+    const afterFn = bodyEnd > 0 ? code.slice(bodyEnd + 1) : "";
+    const TOP_DECL_RE = /^(export\s+)?(const|let|var|function|type|interface|enum)\s+(\w+)/gm;
+    const topDecls = [];
+    let d;
+    TOP_DECL_RE.lastIndex = 0;
+    while ((d = TOP_DECL_RE.exec(beforeFn)) !== null) {
+      topDecls.push({ name: d[3], offset: d.index, where: "before" });
+    }
+    TOP_DECL_RE.lastIndex = 0;
+    while ((d = TOP_DECL_RE.exec(afterFn)) !== null) {
+      topDecls.push({ name: d[3], offset: d.index + (bodyEnd + 1), where: "after" });
+    }
+    if (topDecls.length > 0) {
+      const ln = code.slice(0, topDecls[0].offset).split("\n").length;
+      issues.push({
+        rule: "apply-top-level-declarations",
+        severity: "warning",
+        message:
+          `Top-level declarations outside the component (${topDecls.map((d) => d.name).join(", ")}) are NOT preserved on apply. Move them inside the component body.`,
+        line: ln,
+      });
+    }
+  }
+
   const ok = !issues.some((i) => i.severity === "error");
   return { filename, ok, issues };
 }
@@ -204,6 +414,53 @@ async function updateIndex(variantsRoot, slotId) {
   }
 
   await writeFile(indexPath, src, "utf8");
+}
+
+async function loadLucideIcons(projectRoot) {
+  const candidates = [
+    join(projectRoot, "node_modules", "lucide-react", "dist", "lucide-react.d.ts"),
+    join(projectRoot, "node_modules", "lucide-react", "dist", "lucide-react.js"),
+    join(projectRoot, "node_modules", "lucide-react", "dist", "esm", "lucide-react.js"),
+    join(projectRoot, "node_modules", "lucide-react", "dynamicIconImports.js"),
+  ];
+  const iconsDir = join(projectRoot, "node_modules", "lucide-react", "dist", "esm", "icons");
+  const set = new Set();
+  try {
+    if (existsSync(iconsDir)) {
+      const entries = await readdir(iconsDir);
+      for (const e of entries) {
+        if (!e.endsWith(".js")) continue;
+        const base = e.replace(/\.js$/, "");
+        const pascal = base
+          .split("-")
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+          .join("");
+        set.add(pascal);
+        set.add(`${pascal}Icon`);
+      }
+    }
+  } catch {}
+
+  if (set.size === 0) {
+    for (const p of candidates) {
+      if (!existsSync(p)) continue;
+      try {
+        const src = await readFile(p, "utf8");
+        const re = /export\s*\{\s*([^}]+)\s*\}/g;
+        let m;
+        while ((m = re.exec(src)) !== null) {
+          for (const tok of m[1].split(",")) {
+            const n = tok.split(/\s+as\s+/)[0].trim();
+            if (/^[A-Z]\w*$/.test(n)) set.add(n);
+          }
+        }
+        const reDecl = /export\s+(?:const|function|class)\s+([A-Z]\w*)/g;
+        while ((m = reDecl.exec(src)) !== null) set.add(m[1]);
+        if (set.size > 0) break;
+      } catch {}
+    }
+  }
+  return set;
 }
 
 async function resolveVariantsDir(projectRoot) {
@@ -273,11 +530,13 @@ async function main() {
     process.exit(0);
   }
 
+  const lucideIcons = await loadLucideIcons(projectRoot);
+
   const reports = [];
   for (const f of variantFiles) {
     const code = await readFile(resolve(slotDir, f), "utf8");
     const variantId = Number.parseInt(f.match(/Variant(\d+)/)?.[1] ?? "0", 10);
-    const r = validateOne(f, code);
+    const r = validateOne(f, code, { lucideIcons });
     reports.push({ variantId, file: f, ok: r.ok, issues: r.issues });
   }
 

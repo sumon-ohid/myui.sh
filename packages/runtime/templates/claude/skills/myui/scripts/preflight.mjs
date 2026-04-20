@@ -153,6 +153,29 @@ async function main() {
     if (deps[s.key]) report.iconLibs.push(s.name);
   }
 
+  if (deps["lucide-react"]) {
+    try {
+      const iconsDir = join(root, "node_modules", "lucide-react", "dist", "esm", "icons");
+      if (existsSync(iconsDir)) {
+        const entries = await readdir(iconsDir);
+        const names = entries
+          .filter((e) => e.endsWith(".js"))
+          .map((e) =>
+            e
+              .replace(/\.js$/, "")
+              .split("-")
+              .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+              .join(""),
+          )
+          .sort();
+        report.lucideIcons = { version: deps["lucide-react"], count: names.length, names };
+        if (names.length === 0) {
+          report.notes.push("lucide-react installed but icon inventory empty — check node_modules integrity");
+        }
+      }
+    } catch {}
+  }
+
   const cfg = await readJsonSafe(join(root, ".myui", "config.json"));
   if (cfg) {
     report.config = cfg;

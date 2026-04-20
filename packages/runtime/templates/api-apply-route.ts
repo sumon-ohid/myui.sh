@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, rmSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, writeFileSync, rmSync, readdirSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { NextResponse } from "next/server";
 
 const ROOT = process.cwd();
@@ -287,6 +287,128 @@ function countRemainingSlots(src: string): number {
   return matches ? matches.length : 0;
 }
 
+// ---------- Link-mode helpers ----------
+
+interface VariantAnalysis {
+  mode: "inline" | "link";
+  reason: string;
+  hasUseClient: boolean;
+}
+
+function analyzeVariant(src: string): VariantAnalysis {
+  const firstNonEmpty = src.split("\n").find((l) => l.trim().length > 0) ?? "";
+  const hasUseClient = /^\s*["']use client["']\s*;?\s*$/.test(firstNonEmpty);
+
+  const HOOK_RE =
+    /\b(useState|useEffect|useReducer|useRef|useCallback|useMemo|useContext|useLayoutEffect|useTransition|useDeferredValue|useId|useSyncExternalStore|useInsertionEffect|useOptimistic|useActionState|useFormStatus|useFormState|useSWR|useQuery|useMutation|useInfiniteQuery|useAtom|useStore)\b/;
+  if (hasUseClient) return { mode: "link", reason: "has \"use client\" directive", hasUseClient: true };
+  if (HOOK_RE.test(src)) return { mode: "link", reason: "uses React hooks", hasUseClient };
+  if (/\bon(Click|Change|Submit|KeyDown|KeyUp|Focus|Blur|Input|Scroll)\s*=\s*\{/.test(src))
+    return { mode: "link", reason: "has event handlers", hasUseClient };
+
+  // Top-level declarations outside the default export function.
+  const fnRe = /export\s+default\s+function\s+\w+\s*\(/;
+  const fnMatch = fnRe.exec(src);
+  if (!fnMatch) return { mode: "link", reason: "non-standard default export", hasUseClient };
+  const before = src.slice(0, fnMatch.index);
+  if (/^(export\s+)?(const|let|var|function|type|interface|enum)\s+\w+/m.test(before))
+    return { mode: "link", reason: "has top-level declarations", hasUseClient };
+
+  return { mode: "inline", reason: "simple presentational variant", hasUseClient };
+}
+
+function pascal(s: string): string {
+  return s
+    .split(/[-_ ]+/)
+    .filter(Boolean)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join("");
+}
+
+function renameDefaultExport(src: string, newName: string): string {
+  // `export default function Xxx(...)` or `export default function Xxx<T>(...)`
+  return src.replace(
+    /export\s+default\s+function\s+(\w+)/,
+    `export default function ${newName}`,
+  );
+}
+
+function replaceSlotWithComponent(
+  src: string,
+  slotBlock: { start: number; end: number },
+  componentName: string,
+): string {
+  const lineStart = src.lastIndexOf("\n", slotBlock.start - 1) + 1;
+  const indent = src.slice(lineStart, slotBlock.start).match(/^\s*/)?.[0] ?? "";
+  const replacement = `<${componentName} />`;
+  // Re-indent only the opening line; the block replacement is a single self-closing tag.
+  void indent;
+  return src.slice(0, slotBlock.start) + replacement + src.slice(slotBlock.end);
+}
+
+function addAppliedImport(src: string, componentName: string, importPath: string): string {
+  if (new RegExp(`from\\s+["']${importPath.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}["']`).test(src)) {
+    return src;
+  }
+  const importLine = `import ${componentName} from "${importPath}";\n`;
+  const lastImport = src.match(/^(import[^\n]*\n)+/m);
+  if (lastImport) {
+    return src.replace(lastImport[0], lastImport[0] + importLine);
+  }
+  // Preserve "use client" directive position if present.
+  if (/^\s*["']use client["']\s*;?\s*\n/.test(src)) {
+    return src.replace(/^(\s*["']use client["']\s*;?\s*\n)/, `$1${importLine}`);
+  }
+  return importLine + src;
+}
+
+function removeMyuiSlotImportIfUnused(src: string): string {
+  if (/<MyuiSlot\b/.test(src)) return src;
+  return src.replace(
+    /^import\s+\{([^}]*)\}\s+from\s+["']@myui-sh\/runtime["'];\s*\n/m,
+    (full, inner: string) => {
+      const remaining = inner
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter((s: string) => s && s !== "MyuiSlot");
+      if (remaining.length === 0) return "";
+      return `import { ${remaining.join(", ")} } from "@myui-sh/runtime";\n`;
+    },
+  );
+}
+
+function applyLinkMode(params: {
+  originalSrc: string;
+  originalPath: string;
+  variantSrc: string;
+  slotId: string;
+  slotBlock: { start: number; end: number };
+}): { hostSrc: string; appliedPath: string; componentName: string } {
+  const { originalSrc, originalPath, variantSrc, slotId, slotBlock } = params;
+  const componentName = `${pascal(slotId)}Applied`;
+  const hostDir = dirname(originalPath);
+  const appliedPath = join(hostDir, `${componentName}.tsx`);
+
+  let appliedSrc = renameDefaultExport(variantSrc, componentName);
+  // Ensure "use client" is preserved on line 1 (renameDefaultExport doesn't touch it).
+  // If not present but the variant analyzer flagged client needs, add it defensively.
+  if (!/^\s*["']use client["']\s*;?/m.test(appliedSrc.split("\n").slice(0, 3).join("\n"))) {
+    const needsClient =
+      /\buse(State|Effect|Reducer|Ref|Callback|Memo|Context|LayoutEffect)\b/.test(appliedSrc) ||
+      /\bon(Click|Change|Submit|KeyDown|KeyUp|Focus|Blur|Input|Scroll)\s*=\s*\{/.test(appliedSrc);
+    if (needsClient) appliedSrc = `"use client";\n\n` + appliedSrc;
+  }
+
+  writeFileSync(appliedPath, appliedSrc);
+
+  let hostSrc = replaceSlotWithComponent(originalSrc, slotBlock, componentName);
+  const importPath = `./${componentName}`;
+  hostSrc = addAppliedImport(hostSrc, componentName, importPath);
+  hostSrc = removeMyuiSlotImportIfUnused(hostSrc);
+
+  return { hostSrc, appliedPath, componentName };
+}
+
 export async function POST(req: Request) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "not available in production" }, { status: 403 });
@@ -337,25 +459,41 @@ export async function POST(req: Request) {
     );
   }
 
-  const variantJsx = extractReturnJsx(variantSrc);
-  if (!variantJsx) {
-    return NextResponse.json(
-      { error: `could not extract JSX from Variant${variantIndex}` },
-      { status: 500 },
-    );
+  const analysis = analyzeVariant(variantSrc);
+  let merged: string;
+
+  if (analysis.mode === "link") {
+    const { hostSrc } = applyLinkMode({
+      originalSrc,
+      originalPath,
+      variantSrc,
+      slotId,
+      slotBlock,
+    });
+    merged = hostSrc;
+  } else {
+    const variantJsx = extractReturnJsx(variantSrc);
+    if (!variantJsx) {
+      return NextResponse.json(
+        { error: `could not extract JSX from Variant${variantIndex}` },
+        { status: 500 },
+      );
+    }
+
+    const lineStart = originalSrc.lastIndexOf("\n", slotBlock.start - 1) + 1;
+    const indent = originalSrc.slice(lineStart, slotBlock.start).match(/^\s*/)?.[0] ?? "";
+    const reindented = reindent(variantJsx, indent);
+
+    const replaced =
+      originalSrc.slice(0, slotBlock.start) +
+      reindented +
+      originalSrc.slice(slotBlock.end);
+
+    merged = mergeImports(replaced, variantSrc);
+    // remove myui-sh/runtime imports handled below if remaining slots > 0
   }
 
-  const lineStart = originalSrc.lastIndexOf("\n", slotBlock.start - 1) + 1;
-  const indent = originalSrc.slice(lineStart, slotBlock.start).match(/^\s*/)?.[0] ?? "";
-  const reindented = reindent(variantJsx, indent);
-
-  const replaced =
-    originalSrc.slice(0, slotBlock.start) +
-    reindented +
-    originalSrc.slice(slotBlock.end);
-
-  const remainingSlots = countRemainingSlots(replaced);
-  let merged = mergeImports(replaced, variantSrc);
+  const remainingSlots = countRemainingSlots(merged);
   merged = removeRuntimeImports(merged, { keepSlotImport: remainingSlots > 0 });
 
   if (remainingSlots === 0) {

@@ -87,6 +87,21 @@ Name variants semantically in manifest comments — e.g. `// Stacked-dense`, `//
 - **Motion**: respects `prefers-reduced-motion`; durations 120–240ms for micro, 300–500ms for layout
 - **No dead ends**: every interactive element has a defined outcome
 
+### 4a. Apply-safety requirements (STRICT — validator enforces)
+
+The apply-route transplants your component's JSX return into the user's file. To avoid silent data loss, every variant MUST:
+
+- **Start with `"use client"`** on line 1 if it: uses any React hook, has any event handler (`onClick` etc.), or imports a client-only library (`lucide-react`, `@phosphor-icons/react`).
+- **Use `export default function Variant<N>(props?) { ... }`** — no arrow-function default exports, no `const X = ...; export default X`.
+- **Keep all logic INSIDE the component body** — no top-level constants, types, interfaces, helper functions, or arrays outside the default-export function. Apply drops them.
+- **Single top-level `return`** — put loading/error branches INSIDE the returned JSX using conditional rendering (`{loading ? <Skel/> : <Main/>}`), not as early returns. Multiple top-level returns = apply mis-selects the branch.
+- **No top-level ternary returns** — `return cond ? <A/> : <B/>` may truncate. Wrap in parens or use `if (cond) return <A/>; return <B/>;` only when the variant has ONE real return path.
+
+### 4b. Icon import rules
+
+- Only import lucide-react icons that exist in the user's installed version. The validator checks names against `node_modules/lucide-react/dist/esm/icons/`. If unsure, run preflight first — it lists available icons.
+- Prefer text labels over icons when the icon is uncertain.
+
 ---
 
 ## 5. Anti-patterns — forbidden
