@@ -57,6 +57,7 @@ Motion:     <none | subtle | expressive>
 Hierarchy:  <typography-led | color-led | space-led | asymmetry-led>
 Primitives: <shadcn | radix | custom:name>
 Icons:      <lucide-react | @phosphor-icons/react | hugeicons-react | project default>
+MotionLib:  <framer-motion | motion-primitives | none> (check preflight componentLibs)
 Spacing:    <section: py-24 lg:py-32 | card-gap: gap-6 | inner: p-6>
 Radius:     <rounded-xl | rounded-2xl | rounded-lg — ONE value, used everywhere>
 Color mode: <light+dark | light-only | dark-only>
@@ -173,7 +174,99 @@ These rules separate "correct" output from **clean, premium-feeling** UI. Apply 
 - Pair `<span className="bg-border block h-4 w-px" />` as vertical separators in toolbars/inline groups.
 
 ---
+### 4d. Visual richness — backgrounds, motion primitives & assets
 
+This section separates **visually compelling** output from technically correct but flat UI. Apply to hero, marketing, landing, and showcase sections. Use judgment on utility components (tables, forms, settings).
+
+**Background gradient system (hero/marketing sections):**
+Never ship a plain `bg-background` hero. Use a layered approach:
+- **Decorative layer** (`aria-hidden`, `absolute inset-0`, `-z-20`): 2–3 `div` blobs with `radial-gradient()` using `hsla` at 4–8% opacity. Add `isolate contain-strict` to GPU-isolate from content. Hide on mobile with `hidden lg:block`:
+  ```tsx
+  <div aria-hidden className="absolute inset-0 isolate hidden opacity-65 contain-strict lg:block">
+    <div className="absolute left-0 top-0 w-140 h-320 -rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(0,0%,85%,.08)_0,hsla(0,0%,55%,.02)_50%,hsla(0,0%,45%,0)_80%)]" />
+    <div className="absolute left-0 top-0 h-320 w-60 -rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(0,0%,85%,.06)_0,hsla(0,0%,45%,.02)_80%,transparent_100%)] [translate:5%_-50%]" />
+  </div>
+  ```
+- **Vignette layer** (`absolute inset-0 -z-10`): radial gradient that fades hero image into page background:
+  ```tsx
+  <div aria-hidden className="absolute inset-0 -z-10 [background:radial-gradient(125%_125%_at_50%_100%,transparent_0%,var(--color-background)_75%)]" />
+  ```
+
+**Mask gradients for media fade:**
+Use Tailwind v4 mask utilities to fade hero images into the section:
+```tsx
+<div className="mask-b-from-55% mask-b-to-90% relative overflow-hidden px-2">
+  <Image src="..." alt="..." width={2700} height={1440} />
+</div>
+```
+Check preflight `framework` — Tailwind v4 supports this natively. For v3, use `[mask-image:linear-gradient(...)]`.
+
+**Motion primitives (if `motion-primitives` in preflight `componentLibs`):**
+Prefer motion-primitives over hand-rolling when available:
+- Headings: `<TextEffect preset="fade-in-blur" speedSegment={0.3} as="h1">Your Heading</TextEffect>`
+- Staggered entrance groups: wrap with `<AnimatedGroup variants={transitionVariants}>` using spring bounce:
+  ```tsx
+  const transitionVariants = {
+    item: {
+      hidden: { opacity: 0, filter: 'blur(12px)', y: 12 },
+      visible: { opacity: 1, filter: 'blur(0px)', y: 0,
+        transition: { type: 'spring', bounce: 0.3, duration: 1.5 } },
+    },
+  }
+  ```
+If absent, use `framer-motion` directly with the same `initial`/`animate` pattern.
+
+**`next/image` hero frames:**
+For screenshots/product visuals:
+- Always `next/image` (not `<img>`) when Next.js is the framework
+- Dark + light image variants: `className="hidden dark:block"` / `className="dark:hidden"`
+- Wrap in a styled frame for polish:
+  ```tsx
+  <div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1">
+    <Image className="aspect-15/8 rounded-2xl hidden dark:block" src="/app-dark.png" ... />
+    <Image className="aspect-15/8 rounded-2xl border border-border/25 dark:hidden" src="/app-light.png" ... />
+  </div>
+  ```
+
+**Announcement pill badge:**
+Use for "Introducing X" banners above hero headings:
+```tsx
+<Link href="#" className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-zinc-950/5 transition-colors duration-300 dark:border-t-white/5">
+  <span className="text-foreground text-sm">Introducing X</span>
+  <span className="dark:border-background block h-4 w-0.5 border-l bg-white dark:bg-zinc-700" />
+  <div className="bg-background group-hover:bg-muted size-6 overflow-hidden rounded-full duration-500">
+    <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
+      <ArrowRight className="m-auto size-3" />
+      <ArrowRight className="m-auto size-3" />
+    </div>
+  </div>
+</Link>
+```
+
+**Logo / trust grid with blur-reveal:**
+```tsx
+<div className="group relative">
+  <div className="absolute inset-0 z-10 flex scale-95 items-center justify-center opacity-0 duration-500 group-hover:scale-100 group-hover:opacity-100">
+    <Link href="/">Meet Our Customers <ChevronRight className="inline size-3" /></Link>
+  </div>
+  <div className="**:fill-foreground group-hover:blur-xs group-hover:opacity-50 transition-all duration-500 mx-auto grid max-w-2xl grid-cols-4 gap-x-12 gap-y-8">
+    {/* SVG logo components — fill inherits from **:fill-foreground */}
+  </div>
+</div>
+```
+Logo SVGs: check if `components/ui/svgs/` exists in the project. If not, use well-known inline SVGs or `<span className="font-semibold text-sm tracking-tight">BrandName</span>` as placeholder.
+
+**Section type cheat sheet:**
+| Section | Background | Motion | Assets |
+|---------|-----------|--------|--------|
+| Hero | Gradient blobs + vignette + image with mask | TextEffect h1 + AnimatedGroup CTA | next/image frame, announcement pill |
+| Features | Subtle `bg-muted/30` alternating or none | Stagger cards on scroll | Icon per feature (lucide) |
+| Pricing | None or light surface | Fade-in on load | Checkmark icons, toggle animation |
+| Testimonials | None or very subtle | Fade on scroll | Avatar images, quote mark SVG |
+| Logo grid | None | Blur-reveal on hover | SVG brand logos |
+| CTA/Footer | Gradient blob or dark panel | Entrance fade | Minimal |
+
+---
 ## 5. Anti-patterns — forbidden
 
 - Hard-coded light-only colors (`bg-white`, `text-black`, `border-gray-200`) without `dark:` counterpart
@@ -181,8 +274,9 @@ These rules separate "correct" output from **clean, premium-feeling** UI. Apply 
 - Inconsistent section spacing (e.g. `py-16` on hero + `py-24` on features)
 - Gradient soup (>1 decorative gradient per view)
 - Random emoji as icons (use lucide/phosphor/hugeicons/project set)
-- Stacking multiple shadows for “depth”
-- Arbitrary Tailwind values (`w-[437px]`) when a scale token fits
+- Stacking multiple shadows for “depth”- Plain `bg-background` hero with no gradient layer, texture, or image — always add visual depth
+- Using `<img>` instead of `next/image` in Next.js projects
+- Flat logo grids with no interaction or visual treatment- Arbitrary Tailwind values (`w-[437px]`) when a scale token fits
 - Nested cards > 2 deep
 - Center-aligned body text paragraphs
 - > 3 font weights in one view
@@ -209,6 +303,7 @@ For EACH variant, silently verify:
 9. **Opacity layering**: borders use `/50` or `/30`? No full-opacity decorative borders?
 10. **Animation quality** (if motion ≠ none): custom easing on entrances? Stagger ≤ 300ms total? `AnimatePresence` on swaps? `prefers-reduced-motion` respected?
 11. **Whitespace balance**: sections breathe (`gap-12`+)? Related items cluster (`gap-2`–`gap-4`)? No cramped areas?
+12. **Visual richness** (hero/marketing sections): does the section have a background gradient layer or texture? Is `next/image` used for product visuals? Is there an `aria-hidden` decorative blob layer? If motion-primitives is available, are `TextEffect`/`AnimatedGroup` used for heading/CTA entrances?
 
 If ANY check fails — fix before §7. Do not run validate on work that fails self-critique.
 
