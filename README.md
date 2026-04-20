@@ -2,9 +2,13 @@
 
 # myui.sh
 
-**AI-powered UI generation — live inside your running app.**
+**Your AI generates the UI. You just pick the one you like.**
 
-Generate, preview, and apply polished React components with one prompt. Works with Claude Desktop and GitHub Copilot in VS Code.
+Stop describing components to your AI and pasting code back and forth.
+myui generates 2–5 polished variants of any component, hot-reloads them into a floating dock inside your running app, and writes your pick directly to your source file — all from a single prompt.
+
+Works with Claude Desktop and GitHub Copilot in VS Code.
+
 
 [![npm](https://img.shields.io/npm/v/@myui-sh/runtime?label=%40myui-sh%2Fruntime&color=black)](https://www.npmjs.com/package/@myui-sh/runtime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
@@ -161,30 +165,11 @@ Set this env variable before installing:
 MYUI_SKIP_SKILL_BOOTSTRAP=1 npm install -D @myui-sh/runtime
 ```
 
-### Advanced: CLI smoke test
-
-Use the standalone CLI to verify the daemon is running correctly:
-
-```bash
-pnpm dlx @myui-sh/cli dev smoke
-```
-
----
-
-## Related Packages
-
-| Package | Description |
-|---------|-------------|
-| [`@myui-sh/runtime`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/runtime) | React overlay, slot components, and AI skill files |
-| [`@myui-sh/cli`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/cli) | Standalone CLI for daemon management and diagnostics |
-| [`@myui-sh/core`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/core) | Generation orchestration, schema, and validation |
-| [`@myui-sh/preview`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/preview) | Vite daemon for live HMR previews |
-
 ---
 
 ## Contributing
 
-PRs and issues welcome — see the [monorepo on GitHub](https://github.com/sumon-ohid/myui.sh).
+PRs and issues welcome — see the [repo on GitHub](https://github.com/sumon-ohid/myui.sh).
 
 ---
 
