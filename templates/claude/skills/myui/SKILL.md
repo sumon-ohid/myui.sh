@@ -173,6 +173,29 @@ These rules separate "correct" output from **clean, premium-feeling** UI. Apply 
 - Use thin lines as design elements: a `w-8 h-px bg-muted-foreground/40` before a label creates editorial feel.
 - Pair `<span className="bg-border block h-4 w-px" />` as vertical separators in toolbars/inline groups.
 
+**Surface hierarchy — 3 levels maximum:**
+Premium UIs use exactly three surface levels. More = visual noise. Fewer = flat.
+```
+Level 1  bg-background          — page canvas
+Level 2  bg-card / bg-muted     — cards, sidebars, panels
+Level 3  bg-background (raised) — popovers, dropdowns, tooltips
+```
+- Never introduce a fourth surface color (e.g. a nested `bg-muted/50` inside an already-muted card).
+- On dark surfaces: use `border/10` or `border/20` as the only depth cue — no extra background tones.
+- Dashboard rule: header = Level 1, main panel = Level 1, sidebar = Level 2, cards inside sidebar = Level 3 max.
+
+**One unexpected detail per view:**
+Every premium section has one detail that makes the user pause — not the whole design, just one element.
+Examples by section type:
+- Hero: animated announcement pill with double-arrow chevron micro-interaction
+- Features: dotted-grid or graph-paper SVG background inside the icon area
+- Pricing: toggle that swaps monthly/annual with a spring-animated pill indicator
+- Stats: numbers that count up on scroll-enter (use `framer-motion` `useInView` + `useSpring`)
+- Testimonials: avatar stack where each image shifts on hover with `group-hover:[nth]:translate-x-*`
+- Dashboard: a single sparkline or mini ring chart inline in a stat card
+Rule: **one per section, no more**. The rest of the UI is invisible infrastructure supporting it.
+
+---
 ### 4d. Visual richness — backgrounds, motion primitives & assets
 
 This section separates **visually compelling** output from technically correct but flat UI. Apply to hero, marketing, landing, and showcase sections. Use judgment on utility components (tables, forms, settings).
@@ -304,6 +327,8 @@ For EACH variant, silently verify:
 10. **Animation quality** (if motion ≠ none): custom easing on entrances? Stagger ≤ 300ms total? `AnimatePresence` on swaps? `prefers-reduced-motion` respected?
 11. **Whitespace balance**: sections breathe (`gap-12`+)? Related items cluster (`gap-2`–`gap-4`)? No cramped areas?
 12. **Visual richness** (hero/marketing sections): does the section have a background gradient layer or texture? Is `next/image` used for product visuals? Is there an `aria-hidden` decorative blob layer? If motion-primitives is available, are `TextEffect`/`AnimatedGroup` used for heading/CTA entrances?
+13. **Surface hierarchy**: are there exactly 3 surface levels max (`bg-background` → `bg-card/bg-muted` → elevated)? No fourth nested background tone?
+14. **One unexpected detail**: is there exactly one element in this section that's slightly surprising — a micro-interaction, an animated number, a reveal, a textured background? Not zero (flat), not two (busy).
 
 If ANY check fails — fix before §7. Do not run validate on work that fails self-critique.
 
