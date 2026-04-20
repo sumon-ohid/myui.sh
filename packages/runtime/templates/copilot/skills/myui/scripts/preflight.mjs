@@ -4,7 +4,7 @@
 // Usage: node preflight.mjs <project-root> [--near <relative-target-file>] [--max-components 3]
 // Output: JSON to stdout. Exit 0 always. Caller inspects ok.
 
-import { readFile, readdir, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve, join, relative, dirname, basename, extname } from "node:path";
 
@@ -61,6 +61,82 @@ const ICON_LIB_SIGNATURES = [
   { name: "react-icons", key: "react-icons" },
   { name: "@heroicons/react", key: "@heroicons/react" },
 ];
+
+function cacheFilePath(root) {
+  return join(root, ".myui", "cache", "preflight.json");
+}
+
+async function fileFingerprint(p) {
+  try {
+    const s = await stat(p);
+    if (!s.isFile()) return null;
+    return `${relative(dirname(p), p)}:${s.mtimeMs}:${s.size}`;
+  } catch {
+    return null;
+  }
+}
+
+async function dirFingerprint(p) {
+  try {
+    const s = await stat(p);
+    if (!s.isDirectory()) return null;
+    return `${p}:${s.mtimeMs}`;
+  } catch {
+    return null;
+  }
+}
+
+async function buildCacheKey(root, nearRel, maxComponents, promptHint) {
+  const files = [
+    "package.json",
+    ".myui/config.json",
+    ".myui/slots.json",
+    ...TOKEN_CANDIDATES,
+    ...REFERENCE_CANDIDATES,
+  ];
+  const dirs = [...COMPONENT_DIRS, ".myui/inspo", ".myui/inspo/screenshots"];
+
+  if (nearRel) {
+    files.push(nearRel);
+    dirs.push(dirname(nearRel));
+  }
+
+  const parts = [
+    `v=2`,
+    `hint=${promptHint}`,
+    `near=${nearRel ?? ""}`,
+    `max=${maxComponents}`,
+  ];
+
+  for (const rel of files) {
+    const abs = join(root, rel);
+    const fp = await fileFingerprint(abs);
+    if (fp) parts.push(`f:${rel}:${fp}`);
+  }
+
+  for (const rel of dirs) {
+    const abs = join(root, rel);
+    const fp = await dirFingerprint(abs);
+    if (fp) parts.push(`d:${rel}:${fp}`);
+  }
+
+  return parts.sort().join("|");
+}
+
+async function readCache(root) {
+  const p = cacheFilePath(root);
+  try {
+    return JSON.parse(await readFile(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+async function writeCache(root, payload) {
+  const p = cacheFilePath(root);
+  await mkdir(dirname(p), { recursive: true });
+  await writeFile(p, JSON.stringify(payload, null, 2) + "\n", "utf8");
+}
 
 async function readJsonSafe(p) {
   try {
@@ -126,13 +202,44 @@ async function main() {
   let nearRel;
   let maxComponents = 3;
   let promptHint = "";
+  let useCache = true;
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--near" && args[i + 1]) { nearRel = args[i + 1]; i++; }
     else if (args[i] === "--max-components" && args[i + 1]) { maxComponents = Math.max(1, Math.min(8, Number(args[i + 1]) || 3)); i++; }
     else if (args[i] === "--prompt-hint" && args[i + 1]) { promptHint = args[i + 1].toLowerCase(); i++; }
+    else if (args[i] === "--no-cache") { useCache = false; }
   }
 
-  const report = { ok: true, root, framework: null, componentLibs: [], iconLibs: [], tokens: [], references: [], screenshots: [], components: [], config: null, slots: null, notes: [] };
+  const key = await buildCacheKey(root, nearRel, maxComponents, promptHint);
+  if (useCache) {
+    const cached = await readCache(root);
+    if (cached?.key === key && cached?.report) {
+      const report = {
+        ...cached.report,
+        cacheHit: true,
+        cachePath: relative(root, cacheFilePath(root)),
+      };
+      process.stdout.write(JSON.stringify(report, null, 2));
+      process.exit(0);
+    }
+  }
+
+  const report = {
+    ok: true,
+    root,
+    framework: null,
+    componentLibs: [],
+    iconLibs: [],
+    tokens: [],
+    references: [],
+    screenshots: [],
+    components: [],
+    config: null,
+    slots: null,
+    notes: [],
+    cacheHit: false,
+    cachePath: relative(root, cacheFilePath(root)),
+  };
 
   const pkgPath = join(root, "package.json");
   if (!existsSync(pkgPath)) {
@@ -157,9 +264,9 @@ async function main() {
   }
 
   // Report installed version for each detected icon lib; for lucide also check icon count as a node_modules integrity signal
-  report.iconLibs.forEach((libName) => {
+  for (const libName of report.iconLibs) {
     const version = deps[libName];
-    if (!version) return;
+    if (!version) continue;
     if (libName === "lucide-react") {
       try {
         const iconsDir = join(root, "node_modules", "lucide-react", "dist", "esm", "icons");
@@ -175,7 +282,7 @@ async function main() {
       const key = libName.replace(/[@/]/g, "_").replace(/^_/, "");
       report[key + "Version"] = version;
     }
-  });
+  }
 
   const cfg = await readJsonSafe(join(root, ".myui", "config.json"));
   if (cfg) {
@@ -270,6 +377,12 @@ async function main() {
   if (report.references.length === 0) report.notes.push("no REFERENCES.md or .myui/inspo/ — consider asking user for inspiration links");
   if (report.components.length === 0) report.notes.push("no sample components found — style fingerprint unclear");
   if (report.screenshots.length > 0) report.notes.push(`${report.screenshots.length} reference screenshot(s) returned (filtered to prompt category, capped at 3) — view each absolutePath before generating; they define layout density and visual language`);
+
+  if (useCache) {
+    try {
+      await writeCache(root, { key, report, savedAt: new Date().toISOString() });
+    } catch {}
+  }
 
   process.stdout.write(JSON.stringify(report, null, 2));
   process.exit(0);

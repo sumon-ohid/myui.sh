@@ -29,7 +29,11 @@ Run the preflight script first. One command gathers tokens, sample components, c
 node ~/.claude/skills/myui/scripts/preflight.mjs <project-root> --near <relative-target-file> --prompt-hint "<user prompt summary>"
 ```
 
-Returns JSON with: `framework`, `componentLibs`, `iconLibs`, `tokens[]`, `references[]`, `screenshots[]`, `components[]`, `config`, `slots`, `notes[]`.
+Returns JSON with: `framework`, `componentLibs`, `iconLibs`, `tokens[]`, `references[]`, `screenshots[]`, `components[]`, `config`, `slots`, `notes[]`, `cacheHit`, `cachePath`.
+
+Speed defaults:
+- Keep cache enabled (default). Preflight now reuses `.myui/cache/preflight.json` when project inputs are unchanged.
+- Use `--no-cache` only if you just changed design tokens/references and need a forced refresh.
 
 Read the full JSON. Then:
 
@@ -65,6 +69,21 @@ Color mode: <light+dark | light-only | dark-only>
 4. Ask the user only if still ambiguous.
 
 No taste block → no code.
+
+---
+
+## 2b. Rule tiers (speed + quality)
+
+Apply rules in tiers to avoid overloading simple requests while preserving premium output on demand.
+
+- **Tier A (always required):** sections 4, 4a, 4b, 5, 6, 7, 9. These are correctness + apply-safety rules.
+- **Tier B (default quality):** use restrained polish from 4c for typography, spacing, and opacity depth.
+- **Tier C (premium mode):** apply the full 4c animation choreography and interaction microinteractions when:
+   - user asks for polished / premium / clean / elegant output, or
+   - prompt implies showcase UI (hero, testimonial, landing, marketing, portfolio), or
+   - `config.design.motion` is `subtle` or `expressive`.
+
+If the prompt is simple (button, input, small card), keep Tier A + B and skip heavy motion patterns.
 
 ---
 
@@ -111,7 +130,7 @@ The apply-route transplants your component's JSX return into the user's file. To
 - For lucide-react: the validator checks names against `node_modules/lucide-react/dist/esm/icons/` at validate time and will fail unknown names.
 - Prefer text labels over icons when the icon name is uncertain.
 
-### 4c. Polish & refinement rules
+### 4c. Polish & refinement rules (Tier B + Tier C)
 
 These rules separate "correct" output from **clean, premium-feeling** UI. Apply to every variant.
 
@@ -132,7 +151,7 @@ These rules separate "correct" output from **clean, premium-feeling** UI. Apply 
 - Group related items tightly (`gap-2`, `gap-3`), separate sections generously (`gap-12`, `py-24`).
 - Use asymmetric grid layouts (`grid-cols-[1fr_auto]`, `grid-cols-[2fr_1fr]`) over equal columns — asymmetry creates visual interest.
 
-**Animation choreography (when Motion taste ≠ `none`):**
+**Animation choreography (Tier C; when Motion taste ≠ `none`):**
 - Allowed library: `framer-motion` (add to dependencies if used). Tailwind `transition-*` for simple hover/focus states.
 - Entrance: `opacity: 0 → 1` + subtle `y: 10–40px → 0`. Use custom easing: `ease: [0.22, 1, 0.36, 1]` for smooth deceleration.
 - Stagger siblings: add `delay: index * 0.05` (50ms) per item. Never exceed 300ms total stagger.
@@ -195,7 +214,7 @@ If ANY check fails — fix before §7. Do not run validate on work that fails se
 
 ---
 
-## 7. Variant workflow — STRICTLY FOLLOW (mechanical steps, do not skip or reorder)
+## 7. Variant workflow — FAST PATH (strict)
 
 These steps are owned by scripts. Do NOT hand-edit files the scripts manage.
 
@@ -208,10 +227,19 @@ Wires runtime overlay and creates generated variant folders.
 
 ### Per-request flow
 1. **Wrap target region** with `<MyuiSlot id="...">`.
-2. **Write Variant1..VariantN files** under `<variantsDir>/<slot-id>/` (variantsDir from `.myui/config.json`; default `app/myui-variants` or `src/myui-variants`).
-3. **Run validate/register**:
+2. **Run in parallel (same turn):**
+   - Preflight (cached):
+     ```
+     node ~/.claude/skills/myui/scripts/preflight.mjs <project-root> --near <relative-target-file> --prompt-hint "<summary>"
+     ```
+   - Create `Variant1.tsx` shell immediately using Tier A + Tier B defaults (do not wait for all variants).
+3. **After preflight returns:**
+   - finalize taste block from returned `config.design` + tokens/references
+   - generate remaining variants (or upgrade Variant1 to Tier C if premium mode)
+4. **Write Variant1..VariantN files** under `<variantsDir>/<slot-id>/` (variantsDir from `.myui/config.json`; default `app/myui-variants` or `src/myui-variants`).
+5. **Run validate/register with one-pass fix hints**:
    ```
-   node ~/.claude/skills/myui/scripts/validate.mjs <project-root> <slot-id> --file <relative-path-to-wrapped-file>
+   node ~/.claude/skills/myui/scripts/validate.mjs <project-root> <slot-id> --file <relative-path-to-wrapped-file> --fix-hints
    ```
    On `ok=true` the script auto-writes:
    - `<variantsDir>/<slot-id>/manifest.ts` (Variant re-exports)
@@ -219,7 +247,11 @@ Wires runtime overlay and creates generated variant folders.
    - `.myui/slots.json` entry (when `--file` passed — REQUIRED for `/api/myui/apply`)
 
    Do NOT hand-edit `manifest.ts`, `_index.ts`, or `slots.json`. The script owns them.
-4. If validation fails, fix **only failing variants** and rerun the same command. Registration only occurs when `ok=true`.
+6. If validation fails, apply **all returned `fixHints` in one edit pass**, then rerun the same command once. Avoid iterative micro-fixes.
+
+Preview mode default:
+- Use the in-app overlay path (`<MyuiOverlay />` + `<MyuiSlot />`) as the default preview flow.
+- Do not start the standalone preview daemon unless the project cannot run its normal dev server or you're in a headless environment.
 
 ---
 

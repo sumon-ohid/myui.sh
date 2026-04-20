@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Validate myui variant files. Pure Node, no deps.
-// Usage: node validate.mjs <project-root> <slot-id>
+// Usage: node validate.mjs <project-root> <slot-id> [--file <relative-path-to-wrapped-file>] [--fix-hints]
 // Output: JSON to stdout. Exit 0 always (even with errors). Caller inspects ok.
 
 import { readFile, readdir, stat, writeFile } from "node:fs/promises";
@@ -366,6 +366,111 @@ function validateOne(filename, code, ctx = {}) {
   return { filename, ok, issues };
 }
 
+function fixHintForRule(rule) {
+  const hints = {
+    "missing-use-client": {
+      action: 'Add `"use client";` as line 1 in the file.',
+      priority: "high",
+    },
+    "apply-unsupported-default-export": {
+      action: "Rewrite export to `export default function VariantN(...) { ... }`.",
+      priority: "high",
+    },
+    "missing-default-export": {
+      action: "Add a default-exported function component named VariantN.",
+      priority: "high",
+    },
+    "apply-top-level-declarations": {
+      action: "Move top-level constants/types/helpers inside the component body.",
+      priority: "medium",
+    },
+    "apply-multiple-top-level-returns": {
+      action: "Collapse to one top-level return and use conditional JSX branches inside it.",
+      priority: "medium",
+    },
+    "apply-ternary-return": {
+      action: "Wrap ternary return in parentheses or switch to explicit if/return branches.",
+      priority: "medium",
+    },
+    "non-allowlisted-import": {
+      action: "Replace import with project primitives or allowed packages.",
+      priority: "high",
+    },
+    "forbidden-import": {
+      action: "Remove forbidden dependency usage and reimplement with allowed tooling.",
+      priority: "high",
+    },
+    "invalid-lucide-icon": {
+      action: "Use a valid icon export name from installed lucide-react.",
+      priority: "high",
+    },
+    "button-name": {
+      action: "Add visible text or aria-label/aria-labelledby to every button.",
+      priority: "high",
+    },
+    "img-alt": {
+      action: "Add descriptive alt text to every <img>.",
+      priority: "high",
+    },
+    "no-any": {
+      action: "Replace any with explicit types or generics.",
+      priority: "high",
+    },
+    "no-inline-style": {
+      action: "Replace inline style props with Tailwind utility classes.",
+      priority: "low",
+    },
+    "no-ts-suppression": {
+      action: "Remove TS suppression comments and fix underlying type errors.",
+      priority: "high",
+    },
+    "no-dangerous-html": {
+      action: "Remove dangerouslySetInnerHTML and render sanitized structured content instead.",
+      priority: "high",
+    },
+  };
+  return hints[rule] ?? {
+    action: "Resolve this rule violation in the affected file before rerunning validate.",
+    priority: "medium",
+  };
+}
+
+function buildFixHints(reports) {
+  const byRule = new Map();
+  for (const report of reports) {
+    for (const issue of report.issues) {
+      const key = issue.rule;
+      const existing = byRule.get(key) ?? {
+        rule: key,
+        severity: issue.severity,
+        priority: fixHintForRule(key).priority,
+        action: fixHintForRule(key).action,
+        occurrences: 0,
+        files: new Set(),
+      };
+      existing.occurrences += 1;
+      existing.files.add(report.file);
+      if (issue.severity === "error") existing.severity = "error";
+      byRule.set(key, existing);
+    }
+  }
+
+  return [...byRule.values()]
+    .map((h) => ({
+      rule: h.rule,
+      severity: h.severity,
+      priority: h.priority,
+      action: h.action,
+      occurrences: h.occurrences,
+      files: [...h.files].sort(),
+    }))
+    .sort((a, b) => {
+      const sev = { error: 0, warning: 1 };
+      const pri = { high: 0, medium: 1, low: 2 };
+      return sev[a.severity] - sev[b.severity] || pri[a.priority] - pri[b.priority] || a.rule.localeCompare(b.rule);
+    });
+}
+
 async function readJson(p) {
   try {
     return JSON.parse(await readFile(p, "utf8"));
@@ -489,10 +594,13 @@ async function main() {
   const projectRoot = args[0];
   const slotId = args[1];
   let slotFile;
+  let includeFixHints = false;
   for (let i = 2; i < args.length; i++) {
     if (args[i] === "--file" && args[i + 1]) {
       slotFile = args[i + 1];
       i++;
+    } else if (args[i] === "--fix-hints") {
+      includeFixHints = true;
     }
   }
   if (!projectRoot || !slotId) {
@@ -545,6 +653,7 @@ async function main() {
   }
 
   const ok = reports.every((r) => r.ok);
+  const fixHints = includeFixHints ? buildFixHints(reports) : undefined;
 
   let registered = false;
   let manifestWritten = false;
@@ -576,7 +685,16 @@ async function main() {
 
   process.stdout.write(
     JSON.stringify(
-      { ok, slotId, reports, registered, manifestWritten, indexUpdated, registrationErrors },
+      {
+        ok,
+        slotId,
+        reports,
+        fixHints,
+        registered,
+        manifestWritten,
+        indexUpdated,
+        registrationErrors,
+      },
       null,
       2,
     ),

@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "dev": "pnpm --filter @myui-sh/cli dev"
+    "dev": "pnpm --filter @myui-sh/cli dev",
+    "publish": "npm version patch --no-git-tag-version && npm publish --access public"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
