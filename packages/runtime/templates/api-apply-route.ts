@@ -242,16 +242,29 @@ function findSlotBlock(src: string, slotId: string): { start: number; end: numbe
   const openRe = new RegExp(`<MyuiSlot\\s+id=["']${slotId}["'][^>]*>`, "g");
   const openMatch = openRe.exec(src);
   if (!openMatch) return null;
+  
+  if (openMatch[0].match(/\/>\s*$/)) {
+    return { start: openMatch.index, end: openMatch.index + openMatch[0].length };
+  }
+
   const blockStart = openMatch.index;
   let depth = 1;
   let i = openMatch.index + openMatch[0].length;
+
   while (i < src.length && depth > 0) {
-    const openNext = src.indexOf("<MyuiSlot", i);
+    const nextOpenRe = /<MyuiSlot\b[^>]*>/g;
+    nextOpenRe.lastIndex = i;
+    const nextOpen = nextOpenRe.exec(src);
+
     const closeNext = src.indexOf("</MyuiSlot>", i);
-    if (closeNext === -1) return null;
-    if (openNext !== -1 && openNext < closeNext) {
-      depth++;
-      i = openNext + "<MyuiSlot".length;
+
+    if (closeNext === -1 && depth > 0) return null;
+
+    if (nextOpen && nextOpen.index < closeNext) {
+      if (!nextOpen[0].match(/\/>\s*$/)) {
+        depth++;
+      }
+      i = nextOpen.index + nextOpen[0].length;
     } else {
       depth--;
       i = closeNext + "</MyuiSlot>".length;
