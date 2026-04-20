@@ -1,6 +1,6 @@
 {
   "name": "@myui-sh/runtime",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "In-app variant overlay for myui — slot-based UI generation in your running Next.js app.",
   "type": "module",
   "main": "./dist/index.js",

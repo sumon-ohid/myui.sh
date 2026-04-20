@@ -111,6 +111,48 @@ The apply-route transplants your component's JSX return into the user's file. To
 - For lucide-react: the validator checks names against `node_modules/lucide-react/dist/esm/icons/` at validate time and will fail unknown names.
 - Prefer text labels over icons when the icon name is uncertain.
 
+### 4c. Polish & refinement rules
+
+These rules separate "correct" output from **clean, premium-feeling** UI. Apply to every variant.
+
+**Typography tuning:**
+- Large display text (≥ `text-3xl`): use `font-light` or `font-extralight` + `tracking-tight`. Heavy weights at large sizes look clunky.
+- Small-caps labels / category tags: use `text-xs tracking-[0.15em] uppercase text-muted-foreground`.
+- Body text: `font-normal` only. Never `font-light` below `text-lg`.
+- Max 2 font weights per variant (e.g. `font-light` + `font-medium`). A third (`font-semibold`) only for primary CTAs.
+
+**Opacity-based depth (instead of extra colors):**
+- Borders: prefer `border-border/50` or `border-border/30` over full-opacity `border-border`. Softer borders feel modern.
+- Secondary text: `text-muted-foreground` is fine; for tertiary text use `text-muted-foreground/60`.
+- Decorative dividers: use `h-px bg-border/40` or `w-8 h-px bg-muted-foreground/50` as subtle rhythm markers between content groups.
+- Shadows: if used, one layer only — `shadow-sm` or `shadow-md shadow-black/5`. Never stack shadows.
+
+**Whitespace as design tool:**
+- When in doubt, increase padding — cramped layouts never feel polished.
+- Group related items tightly (`gap-2`, `gap-3`), separate sections generously (`gap-12`, `py-24`).
+- Use asymmetric grid layouts (`grid-cols-[1fr_auto]`, `grid-cols-[2fr_1fr]`) over equal columns — asymmetry creates visual interest.
+
+**Animation choreography (when Motion taste ≠ `none`):**
+- Allowed library: `framer-motion` (add to dependencies if used). Tailwind `transition-*` for simple hover/focus states.
+- Entrance: `opacity: 0 → 1` + subtle `y: 10–40px → 0`. Use custom easing: `ease: [0.22, 1, 0.36, 1]` for smooth deceleration.
+- Stagger siblings: add `delay: index * 0.05` (50ms) per item. Never exceed 300ms total stagger.
+- Content swaps: use `<AnimatePresence mode="wait">` with `initial` / `animate` / `exit` for clean enter/leave transitions.
+- Image transitions: `filter: "blur(12px)" → "blur(0px)"` + `scale: 1.03 → 1` for a premium reveal.
+- Shared layout: use `layoutId` for elements that visually persist across states (active indicators, selection rings).
+- Always wrap motion in `@media (prefers-reduced-motion: no-preference)` or use framer-motion's `useReducedMotion()`.
+- Durations: hover/focus 150–200ms, entrance 300–500ms, exit 200–300ms. Never exceed 600ms.
+
+**Hover & interaction microinteractions:**
+- Buttons/cards: `transition-all duration-200` with opacity or subtle scale (`hover:scale-[1.02]`). Avoid color flash — prefer `hover:bg-muted/50`.
+- Reveal-on-hover: use opacity (`opacity-0 group-hover:opacity-100 transition-opacity duration-200`) for secondary actions or labels.
+- Active/selected states: combine `scale-100` vs `scale-75` with opacity for dot indicators, tabs, toggles.
+- Focus rings: `focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background`. Always visible on keyboard nav.
+
+**Subtle separators & visual rhythm:**
+- Prefer `divide-y divide-border/40` over individual borders on list items.
+- Use thin lines as design elements: a `w-8 h-px bg-muted-foreground/40` before a label creates editorial feel.
+- Pair `<span className="bg-border block h-4 w-px" />` as vertical separators in toolbars/inline groups.
+
 ---
 
 ## 5. Anti-patterns — forbidden
@@ -144,6 +186,10 @@ For EACH variant, silently verify:
 5. **Icon source**: are all icon imports from the declared icon library in the taste block?
 6. **No orphan elements**: every button, link, and input has a visible outcome or state change
 7. **Breakpoint intent**: every `md:` / `lg:` maps to a real layout shift (stack → grid, hidden → visible)
+8. **Typography polish**: display text uses `font-light` + `tracking-tight`? Small labels use `uppercase tracking-[0.15em]`? Max 2 weights?
+9. **Opacity layering**: borders use `/50` or `/30`? No full-opacity decorative borders?
+10. **Animation quality** (if motion ≠ none): custom easing on entrances? Stagger ≤ 300ms total? `AnimatePresence` on swaps? `prefers-reduced-motion` respected?
+11. **Whitespace balance**: sections breathe (`gap-12`+)? Related items cluster (`gap-2`–`gap-4`)? No cramped areas?
 
 If ANY check fails — fix before §7. Do not run validate on work that fails self-critique.
 
