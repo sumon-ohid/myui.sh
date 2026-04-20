@@ -100,8 +100,9 @@ The apply-route transplants your component's JSX return into the user's file. To
 
 ### 4b. Icon import rules
 
-- Only import lucide-react icons that exist in the user's installed version. The validator checks names against `node_modules/lucide-react/dist/esm/icons/`. If unsure, run preflight first — it lists available icons.
-- Prefer text labels over icons when the icon is uncertain.
+- Only import icons from the libraries listed in preflight `iconLibs[]` (lucide-react, @phosphor-icons/react, hugeicons-react, @nucleoapp/nucleo-icon, etc.).
+- For lucide-react: the validator checks names against `node_modules/lucide-react/dist/esm/icons/` at validate time and will fail unknown names.
+- Prefer text labels over icons when the icon name is uncertain.
 
 ---
 

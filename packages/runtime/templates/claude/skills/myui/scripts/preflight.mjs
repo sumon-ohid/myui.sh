@@ -57,6 +57,8 @@ const COMPONENT_LIB_SIGNATURES = [
 const ICON_LIB_SIGNATURES = [
   { name: "lucide-react", key: "lucide-react" },
   { name: "@phosphor-icons/react", key: "@phosphor-icons/react" },
+  { name: "hugeicons-react", key: "hugeicons-react" },
+  { name: "@nucleoapp/nucleo-icon", key: "@nucleoapp/nucleo-icon" },
   { name: "react-icons", key: "react-icons" },
   { name: "@heroicons/react", key: "@heroicons/react" },
 ];
@@ -155,28 +157,26 @@ async function main() {
     if (deps[s.key]) report.iconLibs.push(s.name);
   }
 
-  if (deps["lucide-react"]) {
-    try {
-      const iconsDir = join(root, "node_modules", "lucide-react", "dist", "esm", "icons");
-      if (existsSync(iconsDir)) {
-        const entries = await readdir(iconsDir);
-        const names = entries
-          .filter((e) => e.endsWith(".js"))
-          .map((e) =>
-            e
-              .replace(/\.js$/, "")
-              .split("-")
-              .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-              .join(""),
-          )
-          .sort();
-        report.lucideIcons = { version: deps["lucide-react"], count: names.length, names };
-        if (names.length === 0) {
-          report.notes.push("lucide-react installed but icon inventory empty — check node_modules integrity");
+  // Report installed version for each detected icon lib; for lucide also check icon count as a node_modules integrity signal
+  report.iconLibs.forEach((libName) => {
+    const version = deps[libName];
+    if (!version) return;
+    if (libName === "lucide-react") {
+      try {
+        const iconsDir = join(root, "node_modules", "lucide-react", "dist", "esm", "icons");
+        if (existsSync(iconsDir)) {
+          const entries = await readdir(iconsDir);
+          const count = entries.filter((e) => e.endsWith(".js")).length;
+          report.lucideIcons = { version, count };
+          if (count === 0) report.notes.push("lucide-react installed but icon inventory empty — check node_modules integrity");
         }
-      }
-    } catch {}
-  }
+      } catch {}
+    } else {
+      // For other icon libs just surface the installed version
+      const key = libName.replace(/[@/]/g, "_").replace(/^_/, "");
+      report[key + "Version"] = version;
+    }
+  });
 
   const cfg = await readJsonSafe(join(root, ".myui", "config.json"));
   if (cfg) {
