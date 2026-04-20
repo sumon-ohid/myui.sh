@@ -338,12 +338,12 @@ If ANY check fails — fix before §7. Do not run validate on work that fails se
 
 These steps are owned by scripts. Do NOT hand-edit files the scripts manage.
 
-### One-time setup
-If `myui-sh` is missing, run:
+### One-time setup (ALWAYS run this first — it is idempotent)
+Before writing any variant, run scaffold to ensure the runtime is wired. It skips steps that already exist so it is always safe to run:
 ```
 node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs <project-root>
 ```
-Wires runtime overlay and creates generated variant folders.
+Do NOT skip this on the assumption that `myui-sh` is already installed. Scaffold also creates variant folders, the apply API route, and `.myui/` config. If you skip it and those are missing, variants will not register.
 
 ### Per-request flow
 1. **Wrap target region** with `<MyuiSlot id="...">`.
