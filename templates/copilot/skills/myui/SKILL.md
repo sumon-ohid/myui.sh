@@ -7,7 +7,28 @@ description: Generate, polish, or refine UI components in the user's project wit
 
 Use this skill when a user asks to generate, redesign, or polish a UI section and wants to compare variants in their running app via `<MyuiOverlay />` + `<MyuiSlot />`.
 
-Goal: ship **outstanding** UI every time — not generic, not safe. Each variant must be a considered design decision, not a recolor of the same idea.
+## Quality mandate — read before anything else
+
+The reference bar is **Linear, Vercel, Stripe, Resend**. Every component you generate should feel at home on those products.
+
+**What generic AI output looks like — never do this:**
+- Equal-column grids with identical card heights
+- `text-2xl font-bold` headings with `text-gray-500` subtext on a `bg-gray-50` background
+- `shadow-md` or `shadow-lg` on every card
+- Centered layout with maximum-width container and nothing else
+- Buttons that say "Click here", "Submit", or "Learn more"
+- Every interactive element the same visual weight
+- Status colors hardcoded (`text-green-600`, `bg-red-100`) without dark-mode pairs
+
+**What premium output looks like:**
+- Deliberate asymmetry: `grid-cols-[2fr_1fr]`, sidebar + main, offset elements
+- Typography does the work: weight contrast, tight tracking on large text, `tabular-nums` on data
+- Depth through opacity, not extra colors: `border/30`, `text-muted-foreground/60`, `bg-muted/40`
+- One element per section that's slightly unexpected — an animated detail, a textured background, a count-up number
+- Every hover, focus, active, disabled, empty, and loading state defined
+- Mobile-first: halved padding, stacked layout, touch targets `min-h-10`
+
+If your output looks like something produced by asking a generic AI to "make a dashboard" — it is not good enough. Regenerate.
 
 ---
 
