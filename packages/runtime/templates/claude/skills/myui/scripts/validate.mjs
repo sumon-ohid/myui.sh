@@ -12,6 +12,10 @@ const ALLOWED_PACKAGES = new Set([
   "react-dom",
   "react/jsx-runtime",
   "lucide-react",
+  "@phosphor-icons/react",
+  "hugeicons-react",
+  "@heroicons/react",
+  "react-icons",
   "clsx",
   "tailwind-merge",
   "class-variance-authority",
@@ -176,7 +180,7 @@ function validateOne(filename, code, ctx = {}) {
   // ------- Apply-safety + client-directive checks (Stage 1 guards) -------
 
   const HOOK_RE = /\b(useState|useEffect|useReducer|useRef|useCallback|useMemo|useContext|useLayoutEffect|useTransition|useDeferredValue|useId|useSyncExternalStore|useInsertionEffect|useOptimistic|useActionState|useFormStatus|useFormState|useSWR|useQuery|useMutation|useInfiniteQuery|useAtom|useStore)\b/;
-  const CLIENT_LIB_IMPORTS = new Set(["lucide-react", "@phosphor-icons/react"]);
+  const CLIENT_LIB_IMPORTS = new Set(["lucide-react", "@phosphor-icons/react", "hugeicons-react", "@heroicons/react", "react-icons"]);
   const EVENT_HANDLER_RE = /\bon(Click|Change|Submit|KeyDown|KeyUp|MouseEnter|MouseLeave|Focus|Blur|Input|Scroll|Toggle)\s*=\s*\{/;
 
   const firstNonEmpty = lines.find((l) => l.trim().length > 0) ?? "";

@@ -183,8 +183,16 @@ async function main() {
     report.design = cfg.design ?? null;
     if (!cfg.design) {
       report.notes.push("config.design missing — rerun scaffold-runtime or set .myui/config.json design block (aesthetic, density, motion, hierarchy)");
-    } else if (!cfg.design.aesthetic) {
-      report.notes.push("config.design.aesthetic is empty — ask user to set it (e.g. 'Vercel-minimal', 'Linear-dense')");
+    } else {
+      if (!cfg.design.aesthetic) {
+        report.notes.push("config.design.aesthetic is empty — ask user to set it (e.g. 'Vercel-minimal', 'Linear-dense')");
+      }
+      if (cfg.design.iconSet) {
+        report.notes.push(`Preferred icon set: ${cfg.design.iconSet} — use this library for all icons unless user overrides`);
+      }
+      if (cfg.design.sectionSpacing) {
+        report.notes.push(`Section spacing anchor: ${cfg.design.sectionSpacing} — use consistently across all variants`);
+      }
     }
   } else {
     report.notes.push(".myui/config.json not found — run scaffold-runtime.mjs first");

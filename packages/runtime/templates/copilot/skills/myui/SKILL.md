@@ -47,11 +47,15 @@ Skipping preflight = generic output. Do not skip.
 Commit to a direction. Print this block in your response before any variant code:
 
 ```
-Aesthetic: <e.g. Vercel-minimal | Linear-dense | Stripe-editorial | Arc-playful | brutalist | editorial>
-Density:   <comfortable | compact | spacious>
-Motion:    <none | subtle | expressive>
-Hierarchy: <typography-led | color-led | space-led | asymmetry-led>
+Aesthetic:  <e.g. Vercel-minimal | Linear-dense | Stripe-editorial | Arc-playful | brutalist | editorial>
+Density:    <comfortable | compact | spacious>
+Motion:     <none | subtle | expressive>
+Hierarchy:  <typography-led | color-led | space-led | asymmetry-led>
 Primitives: <shadcn | radix | custom:name>
+Icons:      <lucide-react | @phosphor-icons/react | hugeicons-react | project default>
+Spacing:    <section: py-24 lg:py-32 | card-gap: gap-6 | inner: p-6>
+Radius:     <rounded-xl | rounded-2xl | rounded-lg — ONE value, used everywhere>
+Color mode: <light+dark | light-only | dark-only>
 ```
 
 **Source priority**:
@@ -80,10 +84,13 @@ Name variants semantically in manifest comments — e.g. `// Stacked-dense`, `//
 
 ## 4. Quality bar — every variant must include
 
+- **Dark + light mode** (STRICT): every variant MUST work in both `dark` and `light` mode. Use Tailwind `dark:` variants for backgrounds, text, borders, and shadows. Never hard-code `bg-white` or `text-black` without a corresponding `dark:bg-zinc-950` / `dark:text-white`. Test mentally: if the user toggles theme, does every element remain readable and visually correct?
 - **States**: empty, loading, error, success — where data-driven
-- **A11y**: semantic HTML, ARIA where needed, keyboard nav, visible focus rings, `aria-label` on icon-only buttons, color contrast ≥ WCAG AA
-- **Responsive**: mobile-first, verified at sm/md/lg; no horizontal overflow
-- **Tokens honored**: no hard-coded hex/px outside the project's scale; use existing spacing/radii/type scale
+- **A11y**: semantic HTML, ARIA where needed, keyboard nav, visible focus rings, `aria-label` on icon-only buttons, color contrast ≥ WCAG AA in BOTH light and dark mode
+- **Responsive**: mobile-first; declare intentional breakpoints — stack on mobile (`< md`), 2-col at `md`, full layout at `lg`. No arbitrary `md:` without a reason
+- **Tokens honored**: no hard-coded hex/px outside the project’s scale; use existing spacing/radii/type scale
+- **Consistent radius**: use ONE border-radius value from the taste block across all cards, buttons, inputs, and containers. Never mix `rounded-md` and `rounded-xl` in the same variant
+- **Consistent spacing**: use the declared section spacing from the taste block. All top-level sections use the same vertical padding
 - **Real content**: realistic copy, no "Lorem ipsum", no placeholder emojis unless intentional
 - **Motion**: respects `prefers-reduced-motion`; durations 120–240ms for micro, 300–500ms for layout
 - **No dead ends**: every interactive element has a defined outcome
@@ -92,7 +99,7 @@ Name variants semantically in manifest comments — e.g. `// Stacked-dense`, `//
 
 The apply-route transplants your component's JSX return into the user's file. To avoid silent data loss, every variant MUST:
 
-- **Start with `"use client"`** on line 1 if it: uses any React hook, has any event handler (`onClick` etc.), or imports a client-only library (`lucide-react`, `@phosphor-icons/react`).
+- **Start with `"use client"`** on line 1 if it: uses any React hook, has any event handler (`onClick` etc.), or imports a client-only library (`lucide-react`, `@phosphor-icons/react`, `hugeicons-react`).
 - **Use `export default function Variant<N>(props?) { ... }`** — no arrow-function default exports, no `const X = ...; export default X`.
 - **Keep all logic INSIDE the component body** — no top-level constants, types, interfaces, helper functions, or arrays outside the default-export function. Apply drops them.
 - **Single top-level `return`** — put loading/error branches INSIDE the returned JSX using conditional rendering (`{loading ? <Skel/> : <Main/>}`), not as early returns. Multiple top-level returns = apply mis-selects the branch.
@@ -108,30 +115,37 @@ The apply-route transplants your component's JSX return into the user's file. To
 
 ## 5. Anti-patterns — forbidden
 
+- Hard-coded light-only colors (`bg-white`, `text-black`, `border-gray-200`) without `dark:` counterpart
+- Mixed border-radius in one variant (e.g. `rounded-md` on buttons + `rounded-xl` on cards)
+- Inconsistent section spacing (e.g. `py-16` on hero + `py-24` on features)
 - Gradient soup (>1 decorative gradient per view)
-- Random emoji as icons (use lucide/phosphor/project set)
-- Stacking multiple shadows for "depth"
+- Random emoji as icons (use lucide/phosphor/hugeicons/project set)
+- Stacking multiple shadows for “depth”
 - Arbitrary Tailwind values (`w-[437px]`) when a scale token fits
 - Nested cards > 2 deep
 - Center-aligned body text paragraphs
 - > 3 font weights in one view
 - > 5 distinct colors in one view (excluding neutrals)
-- Fake data that implies features that don't exist
-- Copy like "Click here", "Submit", "Lorem ipsum"
+- Fake data that implies features that don’t exist
+- Copy like “Click here”, “Submit”, “Lorem ipsum”
 - Recolored duplicates passed off as separate variants
+- Using `md:` or `lg:` breakpoint without a clear layout shift reason
 
 ---
 
 ## 6. Self-critique pass (before running validate)
 
-For EACH variant, silently answer:
+For EACH variant, silently verify:
 
-1. What ONE thing does this variant optimize for?
-2. What did I cut to achieve that?
-3. Would a senior designer ship this as-is?
-4. Does it differ from siblings on a real axis (§3), not just vibes?
+1. **Dark mode**: toggle mentally — does every `bg-*`, `text-*`, `border-*` have a `dark:` pair? Any element invisible or unreadable?
+2. **Radius consistency**: grep your code — is there exactly ONE `rounded-*` value (excluding `rounded-full` for avatars/pills)?
+3. **Spacing consistency**: do all top-level sections use the same `py-*` from the taste block?
+4. **Axis uniqueness**: does this variant differ from siblings on layout, hierarchy, or interaction (not just color/font)?
+5. **Icon source**: are all icon imports from the declared icon library in the taste block?
+6. **No orphan elements**: every button, link, and input has a visible outcome or state change
+7. **Breakpoint intent**: every `md:` / `lg:` maps to a real layout shift (stack → grid, hidden → visible)
 
-If any answer is weak or repeats a sibling — rewrite before §7. Do not run validate on work that fails self-critique.
+If ANY check fails — fix before §7. Do not run validate on work that fails self-critique.
 
 ---
 

@@ -112,6 +112,8 @@ const DESIGN_DEFAULTS = {
   hierarchy: "typography-led",
   designSystem: "",
   iconSet: "",
+  sectionSpacing: "py-24 lg:py-32",
+  borderRadius: "rounded-xl",
   variantCount: 3,
   referencesPath: "REFERENCES.md",
   inspoDir: ".myui/inspo",
