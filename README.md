@@ -63,3 +63,10 @@ You are using an outdated variant bootstrap. Update to the latest `runtime` vers
 npm update @myui-sh/runtime@latest
 node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
 ```
+
+
+# Publish new package version
+
+```bash
+npm version patch --no-git-tag-version && npm publish --access public
+```
