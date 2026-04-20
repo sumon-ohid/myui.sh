@@ -23,8 +23,8 @@ Generate, preview, and apply polished React components with one prompt. Works wi
 
 myui.sh lets your AI assistant (Claude or GitHub Copilot) **generate multiple UI variants and show them live in your browser** — without reloading your app or touching your production code.
 
-You just describe what you want. myui.sh:
-1. Asks your AI to generate 1–3 component variants
+You just describe what you want. /myui your prompt:
+1. Asks your AI to generate 2–5 component variants
 2. Hot-reloads them into a floating dock inside your running app
 3. Lets you click between variants to preview them instantly
 4. Writes the one you pick directly to your source file
