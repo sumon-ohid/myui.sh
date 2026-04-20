@@ -58,7 +58,6 @@ const ICON_LIB_SIGNATURES = [
   { name: "lucide-react", key: "lucide-react" },
   { name: "@phosphor-icons/react", key: "@phosphor-icons/react" },
   { name: "hugeicons-react", key: "hugeicons-react" },
-  { name: "@nucleoapp/nucleo-icon", key: "@nucleoapp/nucleo-icon" },
   { name: "react-icons", key: "react-icons" },
   { name: "@heroicons/react", key: "@heroicons/react" },
 ];
