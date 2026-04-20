@@ -1,82 +1,132 @@
 # Design References
 
-The myui skill reads this file during pre-flight. Fill it once — every future generation uses it as a taste anchor.
+The myui skill reads this file during pre-flight. Fill it once — every future generation uses it as a universal taste anchor.
 
-Keep entries concrete. "Nice and modern" → useless. "Tailark Dusk — dark zinc base, rounded-xl cards, border-white/10, spring-bounce animations" → usable.
+Keep entries code-backed and concrete. Vague adjectives give the model nothing. Token values, spacing numbers, and component snippets are what matter.
 
-> ⚠️ **Images in this file are not read by the AI** — only text is parsed. Put screenshots in `.myui/inspo/screenshots/` for your own visual reference. For AI-readable notes about those screenshots, describe them in text below or in `.myui/inspo/*.md` files.
-
----
-
-## How to reference components — code beats images
-
-**Best → install the actual blocks.** If you install Tailark (or any shadcn-based library) into your project, preflight automatically picks up those `.tsx` files and feeds full source code to the model. No manual copy-pasting needed. Example:
-
-```bash
-pnpm dlx shadcn add @tailark/hero-section-1
-pnpm dlx shadcn add @tailark/features-1
-pnpm dlx shadcn add @tailark/pricing-1
-```
-
-**Good → paste short representative snippets here** (see `## Component example` below). Teaches naming, prop shape, and composition style for when the real files aren't installed.
-
-**Useless → raw images or bare URLs.** This file is plain text. The model never sees image pixels from markdown embeds.
-
-Screenshots for your own visual reference → `.myui/inspo/screenshots/`
+> ⚠️ **Images in this file are not read by the AI** — only text is parsed. Describe visuals in words if needed.
 
 ---
 
-## Aesthetic anchors
+## Quality bar
 
-- **Tailark (Dusk kit)** — high-end SaaS marketing blocks; light zinc/slate background (`zinc-50` / `slate-100`), near-black heavy headings (`text-5xl font-bold tracking-tight text-zinc-950`), cards with subtle border + white background, generous section whitespace (`py-24 lg:py-32`), bold black primary button, ghost secondary button
-- **Tailark (Quartz kit)** — same block structure, cleaner neutral palette; more editorial whitespace, stone/zinc neutrals throughout
-- **Linear** — reference for density: tight rows, monospaced labels, restrained accent color
+The goal is **premium, enterprise-grade UI** that is:
+- Visually outstanding — not generic AI output
+- Fully mobile-responsive from 320px to 1440px+
+- Polished at the micro level: hover states, focus rings, transitions, empty states, loading states
+- Dark/light parity on every component without exception
+- Context-aware: marketing sections get editorial spacing; app UI gets information density
 
-## Visual reference (screenshots)
+Reference tier: **Linear, Vercel, Stripe, Resend, Raycast, GitHub**. Every generated component should feel at home alongside these products.
 
-> These are for YOUR eyes only — not read by the AI.
-> See `.myui/inspo/screenshots/` for the actual image files.
+---
 
-**Hero Section (Dusk / One)**
-Massive centered heading on light zinc background. Pill-shaped announcement badge above ("Introducing Support for AI Models →"). Subtext in zinc-500. Two buttons: solid black "Sign Up" + ghost "Login". No decorative gradients — pure type hierarchy.
+## Context — switch design language by section type
 
-**Features Section (Dusk / One)**
-Centered `text-5xl` heading + muted subtext. 3-column card grid on zinc-50 background. Each card: dotted-grid background illustration in icon area, rounded-xl border, bottom-aligned title + description. No accent color — full monochromatic.
+**The model MUST detect context and apply the correct language. Never bleed marketing spacing into app UI, or app density into marketing sections.**
 
-**Pricing Section (Dusk / One)**
-Centered heading `text-5xl font-bold`. 3 flat cards: "Free / $0", "Pro / $19", "Startup / $29". "Popular" badge: pill with orange-to-pink gradient. Cards: `rounded-xl border border-zinc-200 bg-white`. Clean feature list with check icons. Primary CTA: solid black button full-width inside the popular card.
+### Marketing / landing pages
+- Section spacing: `py-20 lg:py-32`, internal grid gaps `gap-8`–`gap-12`
+- Headings: `text-4xl lg:text-6xl font-semibold tracking-tight` — display weight, tight tracking
+- Subtext: `text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto`
+- Cards: `rounded-xl border bg-card` — no shadow by default; `shadow-sm` on featured only
+- CTAs: solid primary + ghost secondary, side by side, centered
+- Visual depth: gradient blob backgrounds, announcement pills, mask-faded hero images
+- Mobile: headings cap at `text-3xl`, sections at `py-12`
 
-**Call To Action (Dusk / One)**
-Minimal centred block. Large "Start Building" heading. Short subtext. Two buttons side by side: solid black "Get Started" + ghost "Book Demo". Maximum whitespace — nothing else on screen.
+### Dashboard / app UI
+- Panel spacing: `px-4 py-3` or `px-6 py-4`; row height `h-9`–`h-10`
+- Headings: page title max `text-xl font-semibold`; section labels `text-sm font-medium text-muted-foreground uppercase tracking-wide`
+- Values/numbers: `font-mono text-sm tabular-nums` — always `tabular-nums` for anything that updates
+- Density: high — users scan, not read; pack information, use dividers not whitespace as separators
+- Layout: sidebar (240–260px) + main, or top nav + content — never centered single-column
+- Trend deltas: `text-xs font-medium text-emerald-600 dark:text-emerald-400` (up) / `text-red-500 dark:text-red-400` (down)
+- Mobile: sidebar collapses to bottom nav or sheet; stat cards stack to 2-col then 1-col
 
-**Stats Section (Dusk / One)**
-3-column stat layout, each column separated by a vertical divider line. Huge `text-5xl font-bold` stat numbers (`+1200`, `22 Million`, `+500`). Small label below each in zinc-500. Centered heading + subtext above. Extremely minimal — zero decoration.
+### Settings / configuration pages
+- Group fields with `divide-y divide-border` — one `<section>` per concern
+- Section layout: `grid gap-6 sm:grid-cols-[1fr_2fr] py-8 border-t first:border-t-0`
+- Section header: `text-sm font-medium` title + `text-xs text-muted-foreground` description
+- Input height: `h-9` (shadcn default) — consistent across all form fields
+- Inline save: show a checkmark `Badge` for 2s on success — no full page reload
+- Destructive zone: always last, `pt-8 border-t border-destructive/20`, text in `text-destructive`
 
-## Component example
+### Data tables
+- Header cells: `text-xs font-medium uppercase tracking-wide text-muted-foreground` — never bold
+- Row: `group h-12 border-b border-border last:border-0 hover:bg-muted/40 transition-colors`
+- Primary column: `text-sm font-medium text-foreground`; all others: `text-sm text-muted-foreground`
+- Status pill: `rounded-full px-2 py-0.5 text-xs font-medium` — semantic colors below
+- Row actions: `opacity-0 group-hover:opacity-100 transition-opacity` — only visible on hover
+- Empty state: icon + `text-sm font-medium` heading + `text-xs text-muted-foreground` + one action CTA, `py-16 text-center`
+
+---
+
+## Mobile responsiveness — mandatory
+
+- **Grids**: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` — never skip mobile breakpoint
+- **Navigation**: sidebar collapses to sheet or bottom nav — never horizontal overflow
+- **Tables**: `overflow-x-auto` wrapper + sticky first column, or collapse to stacked cards via `@container`
+- **Touch targets**: `min-h-10 min-w-10` for all tappable elements on mobile — never `h-7` buttons
+- **Modals**: use `Sheet` (bottom slide-up) instead of centered `Dialog` on mobile for forms and pickers
+- **Spacing**: `py-12 lg:py-24` — halve section padding at mobile, never flat `py-24` everywhere
+- **Typography**: `text-3xl lg:text-5xl` — cap display text at `text-3xl` on mobile
+
+---
+
+## Semantic color tokens for status
+
+Always use these — never invent new status hues:
+- Success / active: `bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400`
+- Error / destructive: `bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`
+- Warning / pending: `bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`
+- Info: `bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400`
+- Neutral / inactive: `bg-muted text-muted-foreground`
+
+---
+
+## Visual assets — what separates outstanding from fine
+
+- **Icons**: `lucide-react`, `strokeWidth={1.5}` always. `size-4` in dense rows, `size-5` in cards, `size-6` in marketing sections. Never filled-style.
+- **Product screenshots**: `next/image`, wrapped in `rounded-2xl border bg-muted/30 shadow-xl shadow-black/10 overflow-hidden`; always ship dark + light pairs (`hidden dark:block` / `dark:hidden`)
+- **Avatars**: `next/image` with `rounded-full`, initials fallback in `bg-muted text-muted-foreground` — never a broken `<img>`
+- **Brand/logo marks**: SVG inline with `fill-current`; in logo grids use `opacity-50 hover:opacity-100 transition-opacity duration-300`
+- **Empty states**: lucide icon at `size-10 text-muted-foreground/40`, short heading, one sentence, one action — never placeholder emoji
+- **Illustrations**: CSS dotted-grid or subtle geometric SVG backgrounds over bitmap — keeps bundle small and scales perfectly
+
+---
+
+## Component examples
 
 ```tsx
-// Tailark Dusk — Features card pattern
-// Key traits: dotted grid bg illustration, monochrome, rounded-xl border, bottom-aligned text
-export function FeatureCard({
-  title,
-  description,
-  icon: Icon,
+// App UI — KPI stat card
+// Key traits: compact, tabular-nums, semantic trend delta color
+export function KpiCard({
+  label,
+  value,
+  delta,
+  deltaLabel,
+  trend,
 }: {
-  title: string
-  description: string
-  icon: React.ElementType
+  label: string
+  value: string
+  delta: string
+  deltaLabel: string
+  trend: 'up' | 'down' | 'flat'
 }) {
   return (
-    <div className="flex flex-col rounded-xl border border-zinc-200 bg-white overflow-hidden">
-      <div className="flex items-center justify-center h-40 bg-zinc-50 border-b border-zinc-200">
-        {/* dotted-grid background + centered icon */}
-        <div className="relative size-12 flex items-center justify-center">
-          <Icon className="size-6 text-zinc-800" strokeWidth={1.5} />
-        </div>
-      </div>
-      <div className="p-6">
-        <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
-        <p className="mt-2 text-sm text-zinc-500 leading-relaxed">{description}</p>
+    <div className="rounded-lg border bg-card p-4 flex flex-col gap-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+      <div className="flex items-center gap-1.5">
+        <span className={cn(
+          "text-xs font-medium",
+          trend === 'up' && "text-emerald-600 dark:text-emerald-400",
+          trend === 'down' && "text-red-500 dark:text-red-400",
+          trend === 'flat' && "text-muted-foreground",
+        )}>
+          {delta}
+        </span>
+        <span className="text-xs text-muted-foreground">{deltaLabel}</span>
       </div>
     </div>
   )
@@ -84,51 +134,170 @@ export function FeatureCard({
 ```
 
 ```tsx
-// Tailark Dusk — Pricing card pattern
-// Key traits: flat white card, rounded-xl, popular = gradient badge, black CTA
+// App UI — Sidebar nav item with spring-animated active indicator
+// Key traits: layoutId spring, icon+label, optional badge, h-9 rows
+import { motion } from 'framer-motion'
+
+export function NavItem({
+  icon: Icon,
+  label,
+  active,
+  badge,
+  onClick,
+}: {
+  icon: React.ElementType
+  label: string
+  active?: boolean
+  badge?: string | number
+  onClick?: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative flex w-full items-center gap-2.5 rounded-md px-3 h-9 text-sm font-medium transition-colors cursor-pointer",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      )}
+    >
+      {active && (
+        <motion.span
+          layoutId="sidebar-active"
+          className="absolute inset-0 rounded-md bg-muted"
+          transition={{ type: 'spring', bounce: 0.2, duration: 0.35 }}
+        />
+      )}
+      <Icon className="relative size-4 shrink-0" strokeWidth={1.5} />
+      <span className="relative flex-1 text-left">{label}</span>
+      {badge != null && (
+        <span className="relative rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary tabular-nums">
+          {badge}
+        </span>
+      )}
+    </button>
+  )
+}
+```
+
+```tsx
+// App UI — Settings form group (2-column label+fields layout)
+// Key traits: divide-y sections, responsive 2-col grid, description text
+export function SettingsGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="grid gap-6 sm:grid-cols-[1fr_2fr] py-8 border-t first:border-t-0 border-border">
+      <div>
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+        {description && (
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{description}</p>
+        )}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  )
+}
+```
+
+```tsx
+// App UI — Table row with hover-reveal actions
+// Key traits: group hover, h-12, status pill, opacity-0 action buttons
+export function DataTableRow({
+  name,
+  email,
+  status,
+  role,
+}: {
+  name: string
+  email: string
+  status: 'active' | 'inactive' | 'pending'
+  role: string
+}) {
+  const statusStyle = {
+    active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    inactive: 'bg-muted text-muted-foreground',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  }[status]
+
+  return (
+    <tr className="group h-12 border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
+      <td className="px-4">
+        <div className="flex items-center gap-3">
+          <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+            {name[0]}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground leading-none">{name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{email}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 text-sm text-muted-foreground">{role}</td>
+      <td className="px-4">
+        <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusStyle)}>
+          {status}
+        </span>
+      </td>
+      <td className="px-4">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Pencil className="size-3.5" strokeWidth={1.5} />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+            <Trash2 className="size-3.5" strokeWidth={1.5} />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  )
+}
+```
+
+```tsx
+// Marketing — Pricing card (light surface, semantic popular state)
+// Key traits: flat card, popular border emphasis, full-width CTA
 export function PricingCard({
   tier,
   price,
   period = "mo",
-  perLabel,
   features,
   popular,
 }: {
   tier: string
   price: string
   period?: string
-  perLabel?: string
   features: string[]
   popular?: boolean
 }) {
   return (
     <div className={cn(
-      "relative flex flex-col rounded-xl border bg-white p-8",
-      popular ? "border-zinc-900 shadow-sm" : "border-zinc-200"
+      "relative flex flex-col rounded-xl border bg-card p-8",
+      popular ? "border-primary shadow-sm" : "border-border"
     )}>
       {popular && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 px-3 py-1 text-xs font-semibold text-white">
-          Popular
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+          Most popular
         </span>
       )}
-      <p className="text-sm font-medium text-zinc-500">{tier}</p>
+      <p className="text-sm font-medium text-muted-foreground">{tier}</p>
       <div className="mt-2 flex items-end gap-1">
-        <span className="text-4xl font-bold tracking-tight text-zinc-900">{price}</span>
-        <span className="mb-1 text-sm text-zinc-400">/ {period}</span>
+        <span className="text-4xl font-bold tracking-tight text-foreground">{price}</span>
+        <span className="mb-1 text-sm text-muted-foreground">/ {period}</span>
       </div>
-      {perLabel && <p className="mt-1 text-xs text-zinc-400">{perLabel}</p>}
       <ul className="mt-6 space-y-3 flex-1">
         {features.map((f) => (
-          <li key={f} className="flex items-center gap-2 text-sm text-zinc-600">
-            <Check className="size-4 text-zinc-900 shrink-0" />
+          <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Check className="size-4 text-foreground shrink-0" strokeWidth={1.5} />
             {f}
           </li>
         ))}
       </ul>
-      <Button
-        className="mt-8 w-full"
-        variant={popular ? "default" : "outline"}
-      >
+      <Button className="mt-8 w-full" variant={popular ? "default" : "outline"}>
         Get started
       </Button>
     </div>
@@ -136,56 +305,56 @@ export function PricingCard({
 }
 ```
 
-```tsx
-// Tailark Dusk — Stats row pattern
-// Key traits: 3 large numbers, vertical dividers, no decoration, centered text
-export function StatsRow({ stats }: { stats: { value: string; label: string }[] }) {
-  return (
-    <div className="grid grid-cols-3 divide-x divide-zinc-200">
-      {stats.map((s) => (
-        <div key={s.label} className="flex flex-col items-center gap-2 py-8 px-6">
-          <span className="text-5xl font-bold tracking-tight text-zinc-900">{s.value}</span>
-          <span className="text-sm text-zinc-500">{s.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-```
+---
 
 ## Do
 
-- Tailark block structure: large section padding (`py-24 lg:py-32`), centered `text-5xl font-bold tracking-tight` heading, muted subtext, then grid or layout below
-- Cards: `rounded-xl border border-zinc-200 bg-white` in light mode — no shadows by default, shadow-sm only on featured/highlighted card
-- Primary button: solid black (`bg-zinc-900 text-white hover:bg-zinc-800`)
-- Secondary button: ghost/outline (`border-zinc-200 text-zinc-700 hover:bg-zinc-50`)
-- Icons: lucide-react, `strokeWidth={1.5}`, `size-5` or `size-6` — never filled
-- Typography scale: `text-5xl font-bold tracking-tight` for section headings, `text-zinc-500` for subtext, `text-base font-semibold text-zinc-900` for card titles
-- Dividers: `divide-zinc-200` or `border-zinc-200` — always `zinc`, never `gray`
-- Real content — no lorem ipsum, no placeholder emoji
+- Match design language to context: marketing = spacious display type; dashboard = dense `text-sm` rows
+- `tabular-nums` on all numeric values that update dynamically
+- Touch targets minimum `h-10` on mobile, `h-9` acceptable on desktop-only UI
+- Dark mode parity on every component — test mentally before shipping
+- `font-mono text-xs` for IDs, timestamps, code values, log lines, version strings
+- Hover: `hover:bg-muted/40` on table rows, `hover:bg-muted/50` on nav items — subtle shift only
+- Focus: `focus-visible:ring-2 ring-ring ring-offset-2 ring-offset-background` — always keyboard-navigable
+- One `layoutId` spring-animated indicator per nav context (tabs, sidebar, segmented control)
+- `next/image` for all bitmap assets, never raw `<img>`
+- `cursor-pointer` on all interactive elements; `cursor-not-allowed opacity-50` on disabled
+- Real content — no lorem ipsum, no "Card Title", no placeholder emoji
 
 ## Don't
 
-- Dark mode base (Tailark Dusk is actually light — the "Dusk" branding is the style kit, not a dark theme)
-- Gradient soup — only 1 gradient allowed (popular badge or specific accent badge)
-- Shadows on every card — flat is the default, shadow-sm only for emphasis
+- `py-24` section spacing inside dashboard panels — that's marketing only
+- `text-4xl`+ headings inside app chrome — page titles max `text-xl font-semibold`
+- Hardcoded `text-black`, `text-white`, `bg-white`, `border-gray-*` — always semantic tokens
+- More than 2 font weights in a dense view (`font-medium` + muted is enough)
+- Mixed border-radius in one component (pick one size; `rounded-full` only for pills/avatars)
+- Gradient soup — zero decorative gradients in app UI; max one in marketing sections
+- Shadows on every card — flat default, `shadow-sm` only for floating/elevated elements
+- Emoji as icons — use lucide-react exclusively
 - Arbitrary Tailwind values (`w-[437px]`) — use scale tokens
-- Nested cards > 2 deep
-- Center-aligned body text in content sections
-- More than 3 font weights per view
-- Emoji as icons
+- Nested cards more than 2 levels deep
+- Center-aligned body text paragraphs in content sections
+- More than 5 distinct hues in one view (neutrals + one semantic accent is the limit)
+- Recolored variants passed off as distinct design decisions
+
+---
 
 ## Voice & copy
 
 - Sentence-case everywhere — no ALL CAPS headings
 - Direct, no exclamation points
-- CTA labels: verb-first ("Get started", "View docs", "Book a demo")
-- Stats and numbers: use `+` prefix for growth metrics (`+1200 Stars`)
+- CTA labels: verb-first ("Get started", "Save changes", "Delete account", "View all")
+- Error messages: say what happened + what to do ("Email already in use — try signing in instead")
+- Empty states: "No [items] yet" + single action ("Add your first [item]")
+- Numbers: `K`/`M` for large values (`12.4K`, `2.1M`); `+` prefix for growth metrics
 
-## Component preferences
+---
 
-- Icons: `lucide-react`, `strokeWidth={1.5}`
-- Buttons: shadcn `Button` — `default` for primary CTA, `outline` for secondary
-- Forms: label above input, helper text `text-sm text-zinc-500`, errors inline in `text-sm text-red-500`
-- Dividers: `divide-zinc-200` or `border-zinc-200`
-- Animations: framer-motion spring (`type: 'spring', bounce: 0.3, duration: 1.5`) with `opacity` + `y` fade-up for section entrances; 120–200ms `ease-out` for micro-interactions
+## Animations
+
+- **Marketing entrances**: `opacity: 0→1` + `y: 20→0`, spring `bounce: 0.3 duration: 1.5`, stagger siblings 50ms apart
+- **App UI transitions**: `150–200ms ease-out` only — no spring bounce in dense UI (feels wrong)
+- **Active indicators** (tabs, sidebar, segmented controls): `layoutId` spring `bounce: 0.2 duration: 0.35`
+- **Count-up numbers on scroll**: `useInView` + `useSpring` from framer-motion
+- **Always**: respect `prefers-reduced-motion` — use `useReducedMotion()` or `@media (prefers-reduced-motion: reduce)`
+- **Never**: animate layout shifts in tables or lists — disorienting for dense data
