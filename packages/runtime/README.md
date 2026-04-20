@@ -4,6 +4,14 @@ In-app variant overlay and slot-based UI generation runtime for `myui`.
 
 This package provides the React components necessary to power `myui` in your running Next.js application. It allows you to wrap existing components in "slots", which `myui` can then target to generate, iterate, and preview UI component variants *directly* inside your app without leaving your browser or altering your production code.
 
+## Examples
+
+**Watch Demo:**
+<video src="https://path-to-your-video.mp4" controls muted playsinline style="max-width: 100%; border-radius: 8px;"></video>
+
+**Preview Dock:**
+![myui Dock Preview](https://path-to-your-image.png)
+
 ## Installation
 
 ```bash

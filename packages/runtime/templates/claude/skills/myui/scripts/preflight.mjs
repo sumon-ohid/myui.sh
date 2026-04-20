@@ -124,9 +124,11 @@ async function main() {
   const root = resolve(args[0] ?? ".");
   let nearRel;
   let maxComponents = 3;
+  let promptHint = "";
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "--near" && args[i + 1]) { nearRel = args[i + 1]; i++; }
     else if (args[i] === "--max-components" && args[i + 1]) { maxComponents = Math.max(1, Math.min(8, Number(args[i + 1]) || 3)); i++; }
+    else if (args[i] === "--prompt-hint" && args[i + 1]) { promptHint = args[i + 1].toLowerCase(); i++; }
   }
 
   const report = { ok: true, root, framework: null, componentLibs: [], iconLibs: [], tokens: [], references: [], screenshots: [], components: [], config: null, slots: null, notes: [] };
@@ -232,6 +234,17 @@ async function main() {
         });
       }
       report.screenshots.sort((a, b) => a.file.localeCompare(b.file));
+
+      // Filter to categories matching the prompt hint, then cap at 3
+      if (promptHint) {
+        const hintWords = promptHint.split(/\W+/).filter(Boolean);
+        const matched = report.screenshots.filter((s) =>
+          hintWords.some((w) => s.category.includes(w) || w.includes(s.category))
+        );
+        report.screenshots = (matched.length > 0 ? matched : report.screenshots).slice(0, 3);
+      } else {
+        report.screenshots = report.screenshots.slice(0, 3);
+      }
     } catch {}
   }
 
@@ -246,7 +259,7 @@ async function main() {
   if (report.componentLibs.length === 0) report.notes.push("no known component library detected — prefer custom primitives, match existing style");
   if (report.references.length === 0) report.notes.push("no REFERENCES.md or .myui/inspo/ — consider asking user for inspiration links");
   if (report.components.length === 0) report.notes.push("no sample components found — style fingerprint unclear");
-  if (report.screenshots.length > 0) report.notes.push(`${report.screenshots.length} reference screenshot(s) available in .myui/inspo/screenshots/ — view relevant ones before generating (match category to prompt)`);
+  if (report.screenshots.length > 0) report.notes.push(`${report.screenshots.length} reference screenshot(s) returned (filtered to prompt category, capped at 3) — view each absolutePath before generating; they define layout density and visual language`);
 
   process.stdout.write(JSON.stringify(report, null, 2));
   process.exit(0);

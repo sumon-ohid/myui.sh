@@ -26,7 +26,7 @@ Goal: ship **outstanding** UI every time — not generic, not safe. Each variant
 Run the preflight script first. One command gathers tokens, sample components, config, and references:
 
 ```
-node ~/.claude/skills/myui/scripts/preflight.mjs <project-root> --near <relative-target-file>
+node ~/.claude/skills/myui/scripts/preflight.mjs <project-root> --near <relative-target-file> --prompt-hint "<user prompt summary>"
 ```
 
 Returns JSON with: `framework`, `componentLibs`, `iconLibs`, `tokens[]`, `references[]`, `screenshots[]`, `components[]`, `config`, `slots`, `notes[]`.
@@ -35,7 +35,7 @@ Read the full JSON. Then:
 
 1. **Check CLAUDE.md** for `REQUIRED` project conventions (not covered by preflight).
 2. **Follow every `notes[]` entry** — each is a gap the model must address before coding.
-3. **View reference screenshots** — if `screenshots[]` is non-empty, identify the 1–3 entries whose `category` best matches the user's prompt (e.g. prompt contains "pricing" → view all `pricing-*.png`; prompt contains "hero" → view `hero-*.png`). Use your file-reading tool to open each matched `absolutePath` and visually study it before writing any code. This is how the reference images are used — they shape your layout decisions, density, and visual language. Do not skip this step if screenshots exist.
+3. **View reference screenshots** — if `screenshots[]` is non-empty, view **every** entry returned (preflight already filtered to ≤3 matching your prompt). Open each `absolutePath` with your file-reading tool and visually study it before writing any code. They define layout density, whitespace rhythm, and visual language. Do not skip.
 4. If preflight returns empty `tokens[]` AND empty `references[]` AND the brief is vague — ask ONE focused question (aesthetic anchor + density). Do not guess house style.
 
 Skipping preflight = generic output. Do not skip.
