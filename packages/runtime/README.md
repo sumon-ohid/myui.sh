@@ -1,110 +1,217 @@
-# @myui-sh/runtime
+<div align="center">
 
-In-app variant overlay and slot-based UI generation runtime for `myui`.
+# myui.sh
 
-This package provides the React components necessary to power `myui` in your running Next.js application. It allows you to wrap existing components in "slots", which `myui` can then target to generate, iterate, and preview UI component variants *directly* inside your app without leaving your browser or altering your production code.
+**AI-powered UI generation — live inside your running app.**
 
-## Examples
+Generate, preview, and apply polished React components with one prompt. Works with Claude Desktop and GitHub Copilot in VS Code.
 
-**Watch Demo:**
-<video src="https://path-to-your-video.mp4" controls muted playsinline style="max-width: 100%; border-radius: 8px;"></video>
+[![npm](https://img.shields.io/npm/v/@myui-sh/runtime?label=%40myui-sh%2Fruntime&color=black)](https://www.npmjs.com/package/@myui-sh/runtime)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
-**Preview Dock:**
-![myui Dock Preview](https://path-to-your-image.png)
+<!-- Replace with your actual demo video -->
+<a href="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-demo.mp4">
+  <img src="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/thumbnail-myui.png" alt="myui.sh demo" width="100%" style="border-radius:12px" />
+</a>
 
-## Installation
+> Click the image above to watch the demo
+
+</div>
+
+---
+
+## What is myui.sh?
+
+myui.sh lets your AI assistant (Claude or GitHub Copilot) **generate multiple UI variants and show them live in your browser** — without reloading your app or touching your production code.
+
+You just describe what you want. myui.sh:
+1. Asks your AI to generate 1–3 component variants
+2. Hot-reloads them into a floating dock inside your running app
+3. Lets you click between variants to preview them instantly
+4. Writes the one you pick directly to your source file
+
+No copy-pasting code. No context switching. Just prompt → preview → apply.
+
+---
+
+## How It Works
+
+<!-- Replace with your actual screenshot -->
+![How myui.sh works](YOUR_HOW_IT_WORKS_SCREENSHOT_URL)
+
+| Step | What happens |
+|------|-------------|
+| **1. Install** | Add `@myui-sh/runtime` and run the scaffold script — your `layout.tsx` is configured automatically |
+| **2. Wrap a slot** | Wrap any component in `<MyuiSlot id="my-section">` to mark it as a target |
+| **3. Prompt your AI** | Ask Claude or Copilot: *"generate a pricing table with 3 variants"* |
+| **4. Preview live** | A floating dock appears in your app — click between variants in real time |
+| **5. Apply** | Hit **Apply** on the variant you love — it's written to your source file instantly |
+
+---
+
+## Quick Start
+
+### 1. Install the runtime
 
 ```bash
-npm install @myui-sh/runtime
+npm install -D @myui-sh/runtime
 # or
-pnpm add @myui-sh/runtime
+pnpm add -D @myui-sh/runtime
 ```
 
-## Setup
+> **What this does:** Installs the React overlay components and automatically copies the AI skill files to `~/.claude/` and `~/.copilot/` so your AI assistant knows how to use myui.
 
-First, add the styles to your global layout or main entry point. Then, mount the `MyuiOverlay` component. The overlay is automatically stripped out in production builds (`NODE_ENV === "production"`).
+### 2. Scaffold your project
 
-```tsx
-// app/layout.tsx
-import "@myui-sh/runtime/styles.css";
-import { MyuiOverlay } from "@myui-sh/runtime";
+This one command wires up your `layout.tsx` and creates the `.myui/` config folder:
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        {children}
-        <MyuiOverlay />
-      </body>
-    </html>
-  );
-}
+**Claude Desktop users:**
+```bash
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
 ```
 
-## Usage
+**GitHub Copilot (VS Code) users:**
+```bash
+node ~/.copilot/skills/myui/scripts/scaffold-runtime.mjs .
+```
 
-### 1. Define Slots
-
-Wrap the parts of your application you want to experiment on with `<MyuiSlot>`. Give each slot a unique `id`.
+### 3. Wrap a component in a slot
 
 ```tsx
+// app/page.tsx
 import { MyuiSlot } from "@myui-sh/runtime";
-import { CheckoutForm } from "@/components/CheckoutForm";
+import { HeroSection } from "@/components/HeroSection";
 
-export default function CheckoutPage() {
+export default function HomePage() {
   return (
     <main>
-      <h1>Checkout</h1>
-      
-      {/* Target this slot to safely experiment with new checkout designs */}
-      <MyuiSlot id="checkout-form">
-        <CheckoutForm />
+      {/* myui can now target this slot */}
+      <MyuiSlot id="hero">
+        <HeroSection />
       </MyuiSlot>
     </main>
   );
 }
 ```
-*Note: In production builds, `MyuiSlot` dissolves completely and simply returns its `children`.*
 
-### 2. Generate Variants (AI Skill & Slot Preview)
+> **Note:** In production builds, `<MyuiSlot>` is a no-op — it simply renders its children. Nothing is shipped to your users.
 
-This package automatically bundles an AI Skill and handles slot previews to seamlessly integrate with AI assistants like GitHub Copilot or Claude. 
+### 4. Prompt your AI
 
-To use it, just open your AI assistant and prompt it. For example:
-> `/myui polish my hero section`
+Open Claude Desktop or GitHub Copilot and type:
 
-The AI will automatically hook into the runtime and manage the variants by running the included `preflight`, `scaffold`, and `validate` scripts behind the scenes. This evaluates your current code, sets up the workspace, generates the new variant, and checks for typescript/build errors prior to inserting it into the slot.
-
-### 3. In-App Preview & Iteration
-
-When running your app locally (development mode), the `MyuiOverlay` will automatically detect active slots on the page. It renders a floating dock at the bottom of the screen.
-
-You can use the overlay or keyboard shortcuts to toggle between the original component and the generated variants.
-
-**Keyboard Shortcuts (when a slot is active):**
-- `1`-`9`: Jump to a specific variant (`0` for the original component)
-- `[` / `]`: Cycle previous/next variant (or Left/Right Arrows)
-- `T`: Toggle overlay theme (light/dark)
-- `H`: Hide/collapse the overlay dock
-
-## Advanced Configuration
-
-If you need programmatic control over the active variants across your application, you can wrap your component tree with `MyuiRegistryProvider`:
-
-```tsx
-import { MyuiRegistryProvider } from "@myui-sh/runtime";
-
-export default function App({ children }) {
-  return (
-    <MyuiRegistryProvider>
-      {children}
-    </MyuiRegistryProvider>
-  );
-}
 ```
-*Note: `MyuiOverlay` natively wraps itself in a registry provider if one does not exist up the tree.*
+generate a modern pricing table in app/components/prices.tsx with 3 variants
+```
+```
+refine the hero section in app/page.tsx
+```
+```
+/myui create a dashboard layout with a sidebar
+```
 
-## Peer Dependencies
+Your app's floating dock will appear with all the variants ready to preview.
 
-- `react` >= 18
-- `react-dom` >= 18
+---
+
+## Screenshots
+
+<!-- Replace the URLs below with your actual screenshots -->
+
+**Floating variant dock:**
+![myui variant dock](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-panel.png)
+
+**Generated variants:**
+![AI generation in action](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-dock-variants.png)
+
+![AI generation in action](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-variants.png)
+
+**Applying a variant to source:**
+![Applying a variant](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-panel-apply.png)
+
+---
+
+## Tailwind Support
+
+The scaffold script integrates with your `tailwind.config.ts` automatically.
+
+**Using Tailwind v4 (CSS-only config)?**
+Tailwind v4 ignores files listed in `.gitignore` by default. myui intentionally keeps `myui-variants/` out of `.gitignore` so Tailwind scans the AI-generated variants and applies styles correctly during preview.
+
+If you don't see Tailwind styles in your preview, check that your `.gitignore` doesn't explicitly exclude `app/myui-variants/` or `src/myui-variants/`.
+
+---
+
+## Troubleshooting
+
+### `Error: Attempted to call registerSlots() from the server`
+
+Your variant bootstrap is outdated. Update the runtime and re-run the scaffold:
+
+```bash
+npm update @myui-sh/runtime@latest
+node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
+```
+
+### Variants don't appear / dock doesn't show
+
+- Make sure your Next.js dev server is running
+- Confirm `<MyuiOverlay />` is mounted in your `layout.tsx`
+- Check that the slot `id` in your component matches what the AI is targeting
+
+### I don't want the skill files auto-copied
+
+Set this env variable before installing:
+
+```bash
+MYUI_SKIP_SKILL_BOOTSTRAP=1 npm install -D @myui-sh/runtime
+```
+
+### Advanced: CLI smoke test
+
+Use the standalone CLI to verify the daemon is running correctly:
+
+```bash
+pnpm dlx @myui-sh/cli dev smoke
+```
+
+---
+
+## Packages
+
+| Package | Description |
+|---------|-------------|
+| [`@myui-sh/runtime`](packages/runtime) | React overlay, slot components, and AI skill files |
+| [`@myui-sh/cli`](packages/cli) | Standalone CLI for daemon management and diagnostics |
+| [`@myui-sh/core`](packages/core) | Generation orchestration, schema, and validation |
+| [`@myui-sh/preview`](packages/preview) | Vite daemon for live HMR previews |
+
+---
+
+## Contributing
+
+PRs and issues are welcome. This is a monorepo using pnpm workspaces.
+
+```bash
+pnpm install
+pnpm build
+```
+
+---
+
+<div align="center">
+
+Made with care · [npm](https://www.npmjs.com/package/@myui-sh/runtime)
+
+</div>
+
+---
+
+<details>
+<summary>Publishing a new package version (maintainers)</summary>
+
+```bash
+npm version patch --no-git-tag-version && npm publish --access public
+```
+
+</details>
