@@ -129,7 +129,7 @@ async function main() {
     else if (args[i] === "--max-components" && args[i + 1]) { maxComponents = Math.max(1, Math.min(8, Number(args[i + 1]) || 3)); i++; }
   }
 
-  const report = { ok: true, root, framework: null, componentLibs: [], iconLibs: [], tokens: [], references: [], components: [], config: null, slots: null, notes: [] };
+  const report = { ok: true, root, framework: null, componentLibs: [], iconLibs: [], tokens: [], references: [], screenshots: [], components: [], config: null, slots: null, notes: [] };
 
   const pkgPath = join(root, "package.json");
   if (!existsSync(pkgPath)) {
@@ -216,6 +216,25 @@ async function main() {
     } catch {}
   }
 
+  // Scan .myui/inspo/screenshots/ — report absolute paths so Claude can view them directly
+  const screenshotsDir = join(root, ".myui", "inspo", "screenshots");
+  if (existsSync(screenshotsDir)) {
+    try {
+      const entries = await readdir(screenshotsDir);
+      for (const e of entries) {
+        if (!/\.(png|jpg|jpeg|webp|gif)$/i.test(e)) continue;
+        // Infer category from filename prefix (e.g. "hero-1.png" → "hero")
+        const category = e.replace(/[-_]\d+\..*$/, "").replace(/\..*$/, "").toLowerCase();
+        report.screenshots.push({
+          file: e,
+          absolutePath: join(screenshotsDir, e),
+          category,
+        });
+      }
+      report.screenshots.sort((a, b) => a.file.localeCompare(b.file));
+    } catch {}
+  }
+
   let nearDir;
   if (nearRel) {
     const abs = resolve(root, nearRel);
@@ -227,6 +246,7 @@ async function main() {
   if (report.componentLibs.length === 0) report.notes.push("no known component library detected — prefer custom primitives, match existing style");
   if (report.references.length === 0) report.notes.push("no REFERENCES.md or .myui/inspo/ — consider asking user for inspiration links");
   if (report.components.length === 0) report.notes.push("no sample components found — style fingerprint unclear");
+  if (report.screenshots.length > 0) report.notes.push(`${report.screenshots.length} reference screenshot(s) available in .myui/inspo/screenshots/ — view relevant ones before generating (match category to prompt)`);
 
   process.stdout.write(JSON.stringify(report, null, 2));
   process.exit(0);
