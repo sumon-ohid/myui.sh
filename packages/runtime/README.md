@@ -9,11 +9,7 @@ Generate, preview, and apply polished React components with one prompt. Works wi
 [![npm](https://img.shields.io/npm/v/@myui-sh/runtime?label=%40myui-sh%2Fruntime&color=black)](https://www.npmjs.com/package/@myui-sh/runtime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
-<a href="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-demo.mp4">
-  <img src="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/thumbnail-myui.png" alt="myui.sh demo" width="100%" style="border-radius:12px" />
-</a>
-
-> Click the image above to watch the demo
+<video src="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-demo.mp4" poster="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/thumbnail-myui.png" width="100%" autoplay loop muted playsinline></video>
 
 </div>
 
