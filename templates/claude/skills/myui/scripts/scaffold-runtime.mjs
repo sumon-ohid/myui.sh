@@ -292,7 +292,7 @@ if (framework === "nextjs" || framework === "nextjs-src") {
   if (!existsSync(apiDest)) {
     const templateCandidates = [
       join(RUNTIME_PKG, "templates", "api-apply-route.ts"),
-      join(root, "node_modules", "@myui-sh", "runtime", "templates", "api-apply-route.ts"),
+      join(root, "node_modules", "myui-sh", "templates", "api-apply-route.ts"),
     ];
     const templateSrc = templateCandidates.find((p) => existsSync(p));
     if (templateSrc) {
@@ -313,7 +313,7 @@ const referencesDest = join(root, "REFERENCES.md");
 if (!existsSync(referencesDest)) {
   const referencesCandidates = [
     join(RUNTIME_PKG, "templates", "REFERENCES.md"),
-    join(root, "node_modules", "@myui-sh", "runtime", "templates", "REFERENCES.md"),
+    join(root, "node_modules", "myui-sh", "templates", "REFERENCES.md"),
   ];
   const referencesSrc = referencesCandidates.find((p) => existsSync(p));
   if (referencesSrc) {
@@ -333,7 +333,7 @@ mkdirSync(inspoScreenshotsDest, { recursive: true });
 // Copy bundled inspo screenshots into user project (never overwrite existing files)
 const inspoScreenshotsSrcCandidates = [
   join(RUNTIME_PKG, "templates", "inspo", "screenshots"),
-  join(root, "node_modules", "@myui-sh", "runtime", "templates", "inspo", "screenshots"),
+  join(root, "node_modules", "myui-sh", "templates", "inspo", "screenshots"),
 ];
 const inspoScreenshotsSrc = inspoScreenshotsSrcCandidates.find((p) => existsSync(p));
 if (inspoScreenshotsSrc) {
