@@ -3,7 +3,7 @@
 // Usage: node scaffold-runtime.mjs <project-root>
 // Output: JSON report on stdout. Always exits 0 unless project root invalid.
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -325,16 +325,37 @@ if (!existsSync(referencesDest)) {
 }
 
 const inspoDirPath = join(myuiDir, "inspo");
-if (!existsSync(inspoDirPath)) {
-  mkdirSync(inspoDirPath, { recursive: true });
+const inspoScreenshotsDest = join(inspoDirPath, "screenshots");
+mkdirSync(inspoScreenshotsDest, { recursive: true });
+
+// Copy bundled inspo screenshots into user project (never overwrite existing files)
+const inspoScreenshotsSrcCandidates = [
+  join(RUNTIME_PKG, "templates", "inspo", "screenshots"),
+  join(root, "node_modules", "@myui-sh", "runtime", "templates", "inspo", "screenshots"),
+];
+const inspoScreenshotsSrc = inspoScreenshotsSrcCandidates.find((p) => existsSync(p));
+if (inspoScreenshotsSrc) {
+  const files = readdirSync(inspoScreenshotsSrc).filter((f) => /\.(png|jpg|jpeg|webp|gif)$/i.test(f));
+  let copied = 0;
+  for (const f of files) {
+    const dest = join(inspoScreenshotsDest, f);
+    if (!existsSync(dest)) {
+      copyFileSync(join(inspoScreenshotsSrc, f), dest);
+      copied++;
+    }
+  }
+  step(".myui/inspo/screenshots", copied > 0 ? "created" : "skip", `${copied} screenshot(s) copied`);
+} else {
+  step(".myui/inspo/screenshots", "warn", "bundled screenshots not found — skipped");
+}
+
+if (!existsSync(join(inspoDirPath, ".gitkeep"))) {
   writeFileSync(
     join(inspoDirPath, ".gitkeep"),
     "# Drop screenshots, notes, or .md files here. Preflight scans this folder.\n",
   );
-  step(".myui/inspo", "created", relative(root, inspoDirPath));
-} else {
-  step(".myui/inspo", "skip", "exists");
 }
+step(".myui/inspo", "ok", relative(root, inspoDirPath));
 
 const giPath = join(root, ".gitignore");
 const giEntries = [".myui/"]; // We purposely no longer gitignore variantsDirRel so Tailwind v4 scans it
