@@ -10,7 +10,7 @@ myui generates 2–5 polished variants of any component, hot-reloads them into a
 Works with Claude Desktop and GitHub Copilot in VS Code.
 
 
-[![npm](https://img.shields.io/npm/v/@myui-sh/runtime?label=%40myui-sh%2Fruntime&color=black)](https://www.npmjs.com/package/@myui-sh/runtime)
+[![npm](https://img.shields.io/npm/v/myui-sh?label=myui-sh&color=black)](https://www.npmjs.com/package/myui-sh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
 <a href="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-demo.mp4">
@@ -54,9 +54,9 @@ No copy-pasting code. No context switching. Just prompt → preview → apply.
 ### 1. Install the runtime
 
 ```bash
-npm install -D @myui-sh/runtime
+npm install -D myui-sh
 # or
-pnpm add -D @myui-sh/runtime
+pnpm add -D myui-sh
 ```
 
 > **What this does:** Installs the React overlay components and automatically copies the AI skill files to `~/.claude/` and `~/.copilot/` so your AI assistant knows how to use myui.
@@ -79,7 +79,7 @@ node ~/.copilot/skills/myui/scripts/scaffold-runtime.mjs .
 
 ```tsx
 // app/page.tsx
-import { MyuiSlot } from "@myui-sh/runtime";
+import { MyuiSlot } from "myui-sh";
 import { HeroSection } from "@/components/HeroSection";
 
 export default function HomePage() {
@@ -147,7 +147,7 @@ If you don't see Tailwind styles in your preview, check that your `.gitignore` d
 Your variant bootstrap is outdated. Update the runtime and re-run the scaffold:
 
 ```bash
-npm update @myui-sh/runtime@latest
+npm update myui-sh@latest
 node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
 ```
 
@@ -162,7 +162,7 @@ node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs .
 Set this env variable before installing:
 
 ```bash
-MYUI_SKIP_SKILL_BOOTSTRAP=1 npm install -D @myui-sh/runtime
+MYUI_SKIP_SKILL_BOOTSTRAP=1 npm install -D myui-sh
 ```
 
 ---
@@ -175,6 +175,6 @@ PRs and issues welcome — see the [repo on GitHub](https://github.com/sumon-ohi
 
 <div align="center">
 
-Made with care · [npm](https://www.npmjs.com/package/@myui-sh/runtime) · [GitHub](https://github.com/sumon-ohid/myui.sh)
+Made with care · [npm](https://www.npmjs.com/package/myui-sh) · [GitHub](https://github.com/sumon-ohid/myui.sh)
 
 </div>

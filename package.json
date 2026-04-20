@@ -1,6 +1,6 @@
 {
-  "name": "@myui-sh/runtime",
-  "version": "0.1.20",
+  "name": "myui-sh",
+  "version": "0.1.22",
   "description": "Prompt your AI, get multiple UI variants, preview them live in your app, apply the one you like.",
   "type": "module",
   "main": "./dist/index.js",
