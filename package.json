@@ -1,6 +1,6 @@
 {
   "name": "myui-sh",
-  "version": "0.1.22",
+  "version": "0.1.25",
   "description": "Prompt your AI, get multiple UI variants, preview them live in your app, apply the one you like.",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,8 +15,11 @@
   },
   "files": [
     "dist",
-    "templates",
-    "scripts"
+    "scripts",
+    "templates/api-apply-route.ts",
+    "templates/REFERENCES.md",
+    "templates/claude",
+    "templates/copilot"
   ],
   "sideEffects": [
     "./dist/styles.css"
