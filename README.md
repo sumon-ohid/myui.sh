@@ -9,9 +9,8 @@ Generate, preview, and apply polished React components with one prompt. Works wi
 [![npm](https://img.shields.io/npm/v/@myui-sh/runtime?label=%40myui-sh%2Fruntime&color=black)](https://www.npmjs.com/package/@myui-sh/runtime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
-<!-- Replace with your actual demo video -->
-<a href="YOUR_DEMO_VIDEO_URL">
-  <img src="YOUR_DEMO_THUMBNAIL_URL" alt="myui.sh demo" width="100%" style="border-radius:12px" />
+<a href="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-demo.mp4">
+  <img src="https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/thumbnail-myui.png" alt="myui.sh demo" width="100%" style="border-radius:12px" />
 </a>
 
 > Click the image above to watch the demo
@@ -24,8 +23,8 @@ Generate, preview, and apply polished React components with one prompt. Works wi
 
 myui.sh lets your AI assistant (Claude or GitHub Copilot) **generate multiple UI variants and show them live in your browser** — without reloading your app or touching your production code.
 
-You just describe what you want. myui.sh:
-1. Asks your AI to generate 1–3 component variants
+You just describe what you want. /myui your prompt:
+1. Asks your AI to generate 2–5 component variants
 2. Hot-reloads them into a floating dock inside your running app
 3. Lets you click between variants to preview them instantly
 4. Writes the one you pick directly to your source file
@@ -35,9 +34,6 @@ No copy-pasting code. No context switching. Just prompt → preview → apply.
 ---
 
 ## How It Works
-
-<!-- Replace with your actual screenshot -->
-![How myui.sh works](YOUR_HOW_IT_WORKS_SCREENSHOT_URL)
 
 | Step | What happens |
 |------|-------------|
@@ -116,16 +112,16 @@ Your app's floating dock will appear with all the variants ready to preview.
 
 ## Screenshots
 
-<!-- Replace the URLs below with your actual screenshots -->
-
 **Floating variant dock:**
 ![myui variant dock](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-panel.png)
 
-**Applying a variant to source:**
-![Applying a variant](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-panel-apply.png)
-
 **Generated variants:**
 ![AI generation in action](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-dock-variants.png)
+
+![AI generation in action](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/myui-variants.png)
+
+**Applying a variant to source:**
+![Applying a variant](https://pub-0e5ba3c19f9e4dfc88bc4365c63c52eb.r2.dev/readme-assets/floating-panel-apply.png)
 
 ---
 
@@ -175,41 +171,25 @@ pnpm dlx @myui-sh/cli dev smoke
 
 ---
 
-## Packages
+## Related Packages
 
 | Package | Description |
 |---------|-------------|
-| [`@myui-sh/runtime`](packages/runtime) | React overlay, slot components, and AI skill files |
-| [`@myui-sh/cli`](packages/cli) | Standalone CLI for daemon management and diagnostics |
-| [`@myui-sh/core`](packages/core) | Generation orchestration, schema, and validation |
-| [`@myui-sh/preview`](packages/preview) | Vite daemon for live HMR previews |
+| [`@myui-sh/runtime`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/runtime) | React overlay, slot components, and AI skill files |
+| [`@myui-sh/cli`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/cli) | Standalone CLI for daemon management and diagnostics |
+| [`@myui-sh/core`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/core) | Generation orchestration, schema, and validation |
+| [`@myui-sh/preview`](https://github.com/sumon-ohid/myui.sh/tree/main/packages/preview) | Vite daemon for live HMR previews |
 
 ---
 
 ## Contributing
 
-PRs and issues are welcome. This is a monorepo using pnpm workspaces.
-
-```bash
-pnpm install
-pnpm build
-```
+PRs and issues welcome — see the [monorepo on GitHub](https://github.com/sumon-ohid/myui.sh).
 
 ---
 
 <div align="center">
 
-Made with care · [npm](https://www.npmjs.com/package/@myui-sh/runtime)
+Made with care · [npm](https://www.npmjs.com/package/@myui-sh/runtime) · [GitHub](https://github.com/sumon-ohid/myui.sh)
 
 </div>
-
----
-
-<details>
-<summary>Publishing a new package version (maintainers)</summary>
-
-```bash
-npm version patch --no-git-tag-version && npm publish --access public
-```
-
-</details>
