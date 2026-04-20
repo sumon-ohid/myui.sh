@@ -1,6 +1,6 @@
 ---
 name: myui
-description: Generate, polish, or refine UI components in the user's project with in-app variant preview via @myui-sh/runtime.
+description: Generate, polish, or refine UI components in the user's project with in-app variant preview via myui-sh.
 ---
 
 # myui skill
@@ -219,7 +219,7 @@ If ANY check fails — fix before §7. Do not run validate on work that fails se
 These steps are owned by scripts. Do NOT hand-edit files the scripts manage.
 
 ### One-time setup
-If `@myui-sh/runtime` is missing, run:
+If `myui-sh` is missing, run:
 ```
 node ~/.copilot/skills/myui/scripts/scaffold-runtime.mjs <project-root>
 ```

@@ -103,7 +103,7 @@ function mergeImports(originalSrc: string, variantSrc: string): string {
   for (const imp of orig.imports) bySource.set(imp.source, { ...imp, defaults: new Set(imp.defaults), named: new Set(imp.named), namespaces: new Set(imp.namespaces) });
 
   for (const imp of varn.imports) {
-    if (imp.source === "@myui-sh/runtime") continue;
+    if (imp.source === "myui-sh") continue;
     if (/myui-variants\/_index/.test(imp.source)) continue;
     const existing = bySource.get(imp.source);
     if (!existing) {
@@ -131,7 +131,7 @@ function removeRuntimeImports(src: string, { keepSlotImport }: { keepSlotImport:
           .map((s: string) => s.trim())
           .filter((s: string) => s && s !== "MyuiSlot");
         if (remaining.length === 0) return "";
-        return `import { ${remaining.join(", ")} } from "@myui-sh/runtime";\n`;
+        return `import { ${remaining.join(", ")} } from "myui-sh";\n`;
       },
     );
   }
@@ -385,7 +385,7 @@ function removeMyuiSlotImportIfUnused(src: string): string {
         .map((s: string) => s.trim())
         .filter((s: string) => s && s !== "MyuiSlot");
       if (remaining.length === 0) return "";
-      return `import { ${remaining.join(", ")} } from "@myui-sh/runtime";\n`;
+      return `import { ${remaining.join(", ")} } from "myui-sh";\n`;
     },
   );
 }

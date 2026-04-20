@@ -41,7 +41,7 @@ No copy-pasting code. No context switching. Just prompt → preview → apply.
 
 | Step | What happens |
 |------|-------------|
-| **1. Install** | Add `@myui-sh/runtime` and run the scaffold script — your `layout.tsx` is configured automatically |
+| **1. Install** | Add `myui-sh` and run the scaffold script — your `layout.tsx` is configured automatically |
 | **2. Wrap a slot** | Wrap any component in `<MyuiSlot id="my-section">` to mark it as a target |
 | **3. Prompt your AI** | Ask Claude or Copilot: *"generate a pricing table with 3 variants"* |
 | **4. Preview live** | A floating dock appears in your app — click between variants in real time |

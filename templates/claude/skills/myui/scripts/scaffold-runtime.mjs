@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-time installer. Wires @myui-sh/runtime into a project.
+// One-time installer. Wires myui-sh into a project.
 // Usage: node scaffold-runtime.mjs <project-root>
 // Output: JSON report on stdout. Always exits 0 unless project root invalid.
 
@@ -90,12 +90,12 @@ step("detect", "ok", `framework: ${framework}, appDir: ${relative(root, appDir)}
 const pkgPath = join(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 pkg.dependencies ??= {};
-if (!pkg.dependencies["@myui-sh/runtime"]) {
-  pkg.dependencies["@myui-sh/runtime"] = "^0.1.0";
+if (!pkg.dependencies["myui-sh"]) {
+  pkg.dependencies["myui-sh"] = "^0.1.0";
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-  step("package.json", "added", "@myui-sh/runtime ^0.1.0");
+  step("package.json", "added", "myui-sh ^0.1.0");
 } else {
-  step("package.json", "skip", "@myui-sh/runtime already present");
+  step("package.json", "skip", "myui-sh already present");
 }
 
 const myuiDir = join(root, ".myui");
@@ -154,15 +154,15 @@ if (!layoutPath) {
   let src = readFileSync(layoutPath, "utf8");
   let changed = false;
 
-  if (!src.includes("@myui-sh/runtime/styles.css")) {
-    src = `import "@myui-sh/runtime/styles.css";\n` + src;
+  if (!src.includes("myui-sh/styles.css")) {
+    src = `import "myui-sh/styles.css";\n` + src;
     changed = true;
   }
   if (!src.includes("MyuiOverlay") || !src.includes("MyuiRegistryProvider")) {
     const runtimeImports = [];
     if (!src.includes("MyuiOverlay")) runtimeImports.push("MyuiOverlay");
     if (!src.includes("MyuiRegistryProvider")) runtimeImports.push("MyuiRegistryProvider");
-    const importLine = `import { ${runtimeImports.join(", ")} } from "@myui-sh/runtime";\n`;
+    const importLine = `import { ${runtimeImports.join(", ")} } from "myui-sh";\n`;
     const lastImport = src.match(/^(import[^\n]*\n)+/m);
     src = lastImport
       ? src.replace(lastImport[0], lastImport[0] + importLine)
@@ -210,7 +210,7 @@ const indexPath = join(variantsDir, "_index.ts");
 if (!existsSync(indexPath)) {
   writeFileSync(
     indexPath,
-    `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "@myui-sh/runtime";\n\nconst SLOT_LOADERS: SlotIndex = {\n  // "slot-id": () => import("./slot-id/manifest.js"),\n};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`,
+    `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "myui-sh";\n\nconst SLOT_LOADERS: SlotIndex = {\n  // "slot-id": () => import("./slot-id/manifest.js"),\n};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`,
   );
   step("_index.ts", "created", indexPath);
 } else {
@@ -222,7 +222,7 @@ if (!existsSync(indexPath)) {
 }`;
     writeFileSync(
       indexPath,
-      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "@myui-sh/runtime";\n\nconst SLOT_LOADERS: SlotIndex = ${slotsObject};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`,
+      `// Auto-maintained by the myui skill. Do not edit by hand.\n"use client";\n\nimport { registerSlots, type SlotIndex } from "myui-sh";\n\nconst SLOT_LOADERS: SlotIndex = ${slotsObject};\n\nregisterSlots(SLOT_LOADERS);\n\nexport function MyuiSlotBootstrap() {\n  return null;\n}\n`,
     );
     step("_index.ts", "migrated", "converted legacy server-side registerSlots");
   } else if (existing.includes("useEffect") && existing.includes("registerSlots(SLOT_LOADERS)")) {
