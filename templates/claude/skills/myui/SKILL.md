@@ -366,6 +366,20 @@ node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs <project-root>
 ```
 Do NOT skip this on the assumption that `myui-sh` is already installed. Scaffold also creates variant folders, the apply API route, and `.myui/` config. If you skip it and those are missing, variants will not register.
 
+**Monorepo / large codebase:** pass the specific app package root, NOT the workspace root.
+- Turborepo / pnpm workspaces: `node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs apps/web`
+- Nx: `node ~/.claude/skills/myui/scripts/scaffold-runtime.mjs apps/my-app`
+- If you pass the monorepo root, the script will auto-scan `apps/` and `packages/` and use the first matching package — but running it directly on the correct path is always safer.
+- After scaffold, use that same sub-path as `<project-root>` in every preflight and validate call.
+
+**After scaffold — check the report for `warn-complex` on the layout step:**
+If the report contains `"status": "warn-complex"` on the `layout` or `layout-slot-bootstrap` step, the script detected an existing provider tree it did not modify to avoid breaking it. You MUST manually wire the layout in that case:
+1. Read the layout file listed in the `detail` field.
+2. Find the innermost element that wraps `{children}` (after any auth/theme/session providers but before the outermost `<html>` / `<body>`).
+3. Wrap that children slot: `<MyuiRegistryProvider>{children}</MyuiRegistryProvider>`.
+4. Place `<MyuiOverlay />` and `<MyuiSlotBootstrap />` as the last two children inside `<MyuiRegistryProvider>` (in that order).
+5. The import lines are already injected by scaffold; no need to add them.
+
 ### Per-request flow
 1. **Wrap target region** with `<MyuiSlot id="...">`.
 2. **Run in parallel (same turn):**
