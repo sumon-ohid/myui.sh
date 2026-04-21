@@ -77,7 +77,7 @@ Density:    <comfortable | compact | spacious>
 Motion:     <none | subtle | expressive>
 Hierarchy:  <typography-led | color-led | space-led | asymmetry-led>
 Primitives: <shadcn | radix | custom:name>
-Icons:      <lucide-react | @phosphor-icons/react | hugeicons-react | project default>
+Icons:      <@phosphor-icons/react | lucide-react | hugeicons-react | project default>
 MotionLib:  <framer-motion | motion-primitives | none> (check preflight componentLibs)
 Spacing:    <section: py-24 lg:py-32 | card-gap: gap-6 | inner: p-6>
 Radius:     <rounded-xl | rounded-2xl | rounded-lg — ONE value, used everywhere>
@@ -148,7 +148,8 @@ The apply-route transplants your component's JSX return into the user's file. To
 
 ### 4b. Icon import rules
 
-- Only import icons from the libraries listed in preflight `iconLibs[]` (lucide-react, @phosphor-icons/react, hugeicons-react, etc.).
+- Only import icons from the libraries listed in preflight `iconLibs[]` (@phosphor-icons/react, lucide-react, hugeicons-react, etc.).
+- Default to `@phosphor-icons/react` with `weight="light"` unless the project has a different icon lib installed.
 - For lucide-react: the validator checks names against `node_modules/lucide-react/dist/esm/icons/` at validate time and will fail unknown names.
 - Prefer text labels over icons when the icon name is uncertain.
 
@@ -303,7 +304,7 @@ Logo SVGs: check if `components/ui/svgs/` exists in the project. If not, use wel
 | Section | Background | Motion | Assets |
 |---------|-----------|--------|--------|
 | Hero | Gradient blobs + vignette + image with mask | TextEffect h1 + AnimatedGroup CTA | next/image frame, announcement pill |
-| Features | Subtle `bg-muted/30` alternating or none | Stagger cards on scroll | Icon per feature (lucide) |
+| Features | Subtle `bg-muted/30` alternating or none | Stagger cards on scroll | Icon per feature (phosphor) |
 | Pricing | None or light surface | Fade-in on load | Checkmark icons, toggle animation |
 | Testimonials | None or very subtle | Fade on scroll | Avatar images, quote mark SVG |
 | Logo grid | None | Blur-reveal on hover | SVG brand logos |

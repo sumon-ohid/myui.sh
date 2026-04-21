@@ -86,11 +86,11 @@ Always use these — never invent new status hues:
 
 ## Visual assets — what separates outstanding from fine
 
-- **Icons**: `lucide-react`, `strokeWidth={1.5}` always. `size-4` in dense rows, `size-5` in cards, `size-6` in marketing sections. Never filled-style.
+- **Icons**: `@phosphor-icons/react`, `weight="light"` always. `size-4` in dense rows, `size-5` in cards, `size-6` in marketing sections. Never `weight="fill"` in UI chrome.
 - **Product screenshots**: `next/image`, wrapped in `rounded-2xl border bg-muted/30 shadow-xl shadow-black/10 overflow-hidden`; always ship dark + light pairs (`hidden dark:block` / `dark:hidden`)
 - **Avatars**: `next/image` with `rounded-full`, initials fallback in `bg-muted text-muted-foreground` — never a broken `<img>`
 - **Brand/logo marks**: SVG inline with `fill-current`; in logo grids use `opacity-50 hover:opacity-100 transition-opacity duration-300`
-- **Empty states**: lucide icon at `size-10 text-muted-foreground/40`, short heading, one sentence, one action — never placeholder emoji
+- **Empty states**: phosphor icon at `size-10 text-muted-foreground/40`, short heading, one sentence, one action — never placeholder emoji
 - **Illustrations**: CSS dotted-grid or subtle geometric SVG backgrounds over bitmap — keeps bundle small and scales perfectly
 
 ---
@@ -330,7 +330,7 @@ export function PricingCard({
 - Mixed border-radius in one component (pick one size; `rounded-full` only for pills/avatars)
 - Gradient soup — zero decorative gradients in app UI; max one in marketing sections
 - Shadows on every card — flat default, `shadow-sm` only for floating/elevated elements
-- Emoji as icons — use lucide-react exclusively
+- Emoji as icons — use @phosphor-icons/react (or project icon library)
 - Arbitrary Tailwind values (`w-[437px]`) — use scale tokens
 - Nested cards more than 2 levels deep
 - Center-aligned body text paragraphs in content sections
