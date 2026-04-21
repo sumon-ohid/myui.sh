@@ -78,7 +78,7 @@ Motion:     <none | subtle | expressive>
 Hierarchy:  <typography-led | color-led | space-led | asymmetry-led>
 Primitives: <shadcn | radix | custom:name>
 Icons:      <@phosphor-icons/react | lucide-react | hugeicons-react | project default>
-MotionLib:  <framer-motion | motion-primitives | none> (check preflight componentLibs)
+MotionLib:  <framer-motion | motion-primitives | none> (from preflight `motionLibs[]`; default: framer-motion)
 Spacing:    <section: py-24 lg:py-32 | card-gap: gap-6 | inner: p-6>
 Radius:     <rounded-xl | rounded-2xl | rounded-lg — ONE value, used everywhere>
 Color mode: <light+dark | light-only | dark-only>
@@ -175,7 +175,7 @@ These rules separate "correct" output from **clean, premium-feeling** UI. Apply 
 - Use asymmetric grid layouts (`grid-cols-[1fr_auto]`, `grid-cols-[2fr_1fr]`) over equal columns — asymmetry creates visual interest.
 
 **Animation choreography (Tier C; when Motion taste ≠ `none`):**
-- Allowed library: `framer-motion` (add to dependencies if used). Tailwind `transition-*` for simple hover/focus states.
+- Default motion library: `framer-motion`. Use whatever is listed first in preflight `motionLibs[]`. Add to dependencies if not already present. Tailwind `transition-*` for simple hover/focus states.
 - Entrance: `opacity: 0 → 1` + subtle `y: 10–40px → 0`. Use custom easing: `ease: [0.22, 1, 0.36, 1]` for smooth deceleration.
 - Stagger siblings: add `delay: index * 0.05` (50ms) per item. Never exceed 300ms total stagger.
 - Content swaps: use `<AnimatePresence mode="wait">` with `initial` / `animate` / `exit` for clean enter/leave transitions.

@@ -54,6 +54,11 @@ const COMPONENT_LIB_SIGNATURES = [
   { name: "headlessui", check: (pkg) => !!pkg.dependencies?.["@headlessui/react"] },
 ];
 
+const MOTION_LIB_SIGNATURES = [
+  { name: "framer-motion", key: "framer-motion" },
+  { name: "motion-primitives", key: "motion-primitives" },
+];
+
 const ICON_LIB_SIGNATURES = [
   { name: "@phosphor-icons/react", key: "@phosphor-icons/react" },
   { name: "lucide-react", key: "lucide-react" },
@@ -230,6 +235,7 @@ async function main() {
     framework: null,
     componentLibs: [],
     iconLibs: [],
+    motionLibs: [],
     tokens: [],
     references: [],
     screenshots: [],
@@ -262,6 +268,10 @@ async function main() {
   for (const s of ICON_LIB_SIGNATURES) {
     if (deps[s.key]) report.iconLibs.push(s.name);
   }
+  for (const s of MOTION_LIB_SIGNATURES) {
+    if (deps[s.key]) report.motionLibs.push(s.name);
+  }
+  if (report.motionLibs.length === 0) report.motionLibs.push("framer-motion");
 
   // Report installed version for each detected icon lib; for lucide also check icon count as a node_modules integrity signal
   for (const libName of report.iconLibs) {
