@@ -91,9 +91,11 @@ const pkgPath = join(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 pkg.dependencies ??= {};
 if (!pkg.dependencies["myui-sh"]) {
-  pkg.dependencies["myui-sh"] = "^0.1.0";
+  const myuiVersion = JSON.parse(readFileSync(join(RUNTIME_PKG, "package.json"), "utf8")).version;
+  const myuiRange = `^${myuiVersion}`;
+  pkg.dependencies["myui-sh"] = myuiRange;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-  step("package.json", "added", "myui-sh ^0.1.0");
+  step("package.json", "added", `myui-sh ${myuiRange}`);
 } else {
   step("package.json", "skip", "myui-sh already present");
 }
