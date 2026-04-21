@@ -152,8 +152,18 @@ const pkgPath = join(root, "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
 pkg.dependencies ??= {};
 if (!pkg.dependencies["myui-sh"]) {
-  const myuiVersion = JSON.parse(readFileSync(join(RUNTIME_PKG, "package.json"), "utf8")).version;
-  const myuiRange = `^${myuiVersion}`;
+  // RUNTIME_PKG is correct when running from the source repo (templates/.../scripts, 5 levels deep).
+  // When installed to ~/.copilot/skills/myui/scripts/ it's only 4 levels deep, so fall back to
+  // the copy already installed in the project's node_modules.
+  const myuiPkgCandidates = [
+    join(RUNTIME_PKG, "package.json"),
+    join(root, "node_modules", "myui-sh", "package.json"),
+  ];
+  const myuiPkgPath = myuiPkgCandidates.find((p) => existsSync(p));
+  const myuiVersion = myuiPkgPath
+    ? JSON.parse(readFileSync(myuiPkgPath, "utf8")).version
+    : "latest";
+  const myuiRange = myuiVersion === "latest" ? "latest" : `^${myuiVersion}`;
   pkg.dependencies["myui-sh"] = myuiRange;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   step("package.json", "added", `myui-sh ${myuiRange}`);
