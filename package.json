@@ -1,6 +1,6 @@
 {
   "name": "myui-sh",
-  "version": "0.1.29",
+  "version": "0.1.31",
   "description": "Prompt your AI, get multiple UI variants, preview them live in your app, apply the one you like.",
   "type": "module",
   "main": "./dist/index.js",
@@ -28,6 +28,7 @@
     "build": "tsc -p tsconfig.json && cp src/styles.css dist/styles.css",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "postinstall": "node ./scripts/postinstall.mjs",
+    "preuninstall": "node ./scripts/uninstall.mjs",
     "pub": "npm version patch --no-git-tag-version && pnpm build && npm publish --access public"
   },
   "peerDependencies": {
